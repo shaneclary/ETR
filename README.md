@@ -25,6 +25,33 @@ Our work represents a significant advancement in radiance field rendering by int
 
 All trained models and rendered test views for MipNeRF360 are available at the [following link.](https://drive.google.com/drive/folders/14Ve16-0ZR4fg-F2Sq1XbZgCHRVHAUWot?usp=sharing)
 
+## ETR: Entangled Triangle Rendering
+
+This repository includes an implementation of **ETR (Entangled Triangle Rendering)**, based on Robert Edward Grant's Entangled Left Triangle theory. ETR provides:
+
+- **Mathematical framework** for analyzing right triangles in the scene
+- **Fractal hierarchy generation** for level-of-detail rendering
+- **Batch GPU operations** for efficient triangle transformation
+- **Integration tools** for Triangle Splatting models
+
+### Quick ETR Demo
+
+```bash
+# Run simple ETR demonstration
+python etr/examples/simple_etr_demo.py
+
+# Run full validation suite
+python -m etr.validation.validation_suite
+```
+
+### ETR Documentation
+
+- [ETR README](etr/README.md) - Complete ETR documentation
+- [Integration Guide](etr/docs/INTEGRATION_GUIDE.md) - How to integrate ETR with training/rendering
+- [Theory Overview](etr/README.md#theory-overview) - Mathematical foundations
+
+For more details on ETR, see the [`etr/`](etr/) directory.
+
 ## Cloning the Repository + Installation
 
 The code has been used and tested with Python 3.11 and CUDA 12.6.
