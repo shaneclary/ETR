@@ -120,8 +120,9 @@ class LeftTriangleGenerator:
             Left triangle with identical angles but inverse scaling
         """
         # Apply Grant's formulas
-        lt_height = 1.0 / rt.height
-        lt_hypotenuse = 1.0 / rt.hypotenuse
+        # Note: The transformation swaps height and hypotenuse roles
+        lt_height = 1.0 / rt.hypotenuse  # Height becomes reciprocal of hypotenuse
+        lt_hypotenuse = 1.0 / rt.height  # Hypotenuse becomes reciprocal of height
         lt_base = rt.base / rt.scaling_factor  # Non-reciprocal!
 
         # Create left triangle (validation happens automatically)

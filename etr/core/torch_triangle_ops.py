@@ -42,9 +42,9 @@ class TorchTriangleOps:
         # Compute scaling factors
         scaling_factors = heights * hypotenuses
 
-        # Apply transformations
-        lt_heights = 1.0 / heights
-        lt_hypotenuses = 1.0 / hypotenuses
+        # Apply transformations (note: height and hypotenuse roles swap)
+        lt_heights = 1.0 / hypotenuses  # New height = 1/old_hypotenuse
+        lt_hypotenuses = 1.0 / heights  # New hypotenuse = 1/old_height
         lt_bases = bases / scaling_factors  # Non-reciprocal
 
         return lt_bases, lt_heights, lt_hypotenuses, scaling_factors
