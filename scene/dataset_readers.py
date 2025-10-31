@@ -34,6 +34,9 @@ from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.triangle_model import BasicPointCloud
 
+# Import multi-format point cloud loader
+from utils.point_cloud_io import PointCloudLoader, load_point_cloud
+
 class CameraInfo(NamedTuple):
     uid: int
     R: np.array
@@ -116,12 +119,13 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
     return cam_infos
 
 def fetchPly(path):
-    plydata = PlyData.read(path)
-    vertices = plydata['vertex']
-    positions = np.vstack([vertices['x'], vertices['y'], vertices['z']]).T
-    colors = np.vstack([vertices['red'], vertices['green'], vertices['blue']]).T / 255.0
-    normals = np.vstack([vertices['nx'], vertices['ny'], vertices['nz']]).T
-    return BasicPointCloud(points=positions, colors=colors, normals=normals)
+    """
+    Load PLY file. Now supports multiple point cloud formats via auto-detection.
+
+    Supported formats: PLY, PCD, PTS, XYZ, LAS/LAZ
+    """
+    # Use new multi-format loader
+    return load_point_cloud(path)
 
 def storePly(path, xyz, rgb):
     # Define the dtype for the structured array
@@ -165,20 +169,58 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
 
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
+    # Try multiple point cloud formats (PLY, PCD, PTS, XYZ, LAS)
+    point_cloud_files = [
+        os.path.join(path, "sparse/0/points3D.ply"),
+        os.path.join(path, "sparse/0/points3D.pcd"),
+        os.path.join(path, "sparse/0/points3D.pts"),
+        os.path.join(path, "sparse/0/points3D.xyz"),
+        os.path.join(path, "sparse/0/points3D.las"),
+        os.path.join(path, "points3D.ply"),  # Also check root
+        os.path.join(path, "points.ply"),
+        os.path.join(path, "point_cloud.ply"),
+        os.path.join(path, "point_cloud.pcd"),
+        os.path.join(path, "point_cloud.pts"),
+        os.path.join(path, "point_cloud.xyz"),
+        os.path.join(path, "point_cloud.las"),
+    ]
+
+    pcd = None
     ply_path = os.path.join(path, "sparse/0/points3D.ply")
     bin_path = os.path.join(path, "sparse/0/points3D.bin")
     txt_path = os.path.join(path, "sparse/0/points3D.txt")
-    if not os.path.exists(ply_path):
+
+    # First, try to find existing point cloud files
+    for pc_file in point_cloud_files:
+        if os.path.exists(pc_file):
+            try:
+                print(f"Loading point cloud from {pc_file}")
+                pcd = load_point_cloud(pc_file)
+                ply_path = pc_file
+                break
+            except Exception as e:
+                print(f"Failed to load {pc_file}: {e}")
+                continue
+
+    # If no point cloud file found, convert from COLMAP binary/text
+    if pcd is None and not os.path.exists(ply_path):
         print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
         try:
             xyz, rgb, _ = read_points3D_binary(bin_path)
         except:
-            xyz, rgb, _ = read_points3D_text(txt_path)
-        storePly(ply_path, xyz, rgb)
-    try:
-        pcd = fetchPly(ply_path)
-    except:
-        pcd = None
+            try:
+                xyz, rgb, _ = read_points3D_text(txt_path)
+            except:
+                print("Warning: No point cloud data found")
+                xyz, rgb = None, None
+
+        if xyz is not None:
+            storePly(ply_path, xyz, rgb)
+            try:
+                pcd = fetchPly(ply_path)
+            except Exception as e:
+                print(f"Failed to load converted PLY: {e}")
+                pcd = None
 
     scene_info = SceneInfo(point_cloud=pcd,
                            train_cameras=train_cam_infos,
