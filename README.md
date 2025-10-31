@@ -52,6 +52,27 @@ python -m etr.validation.validation_suite
 
 For more details on ETR, see the [`etr/`](etr/) directory.
 
+## 📁 Multi-Format Point Cloud Support
+
+Triangle Splatting now supports multiple point cloud input formats:
+
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| PLY | `.ply` | Polygon File Format ✅ |
+| PCD | `.pcd` | Point Cloud Data (PCL format) ✅ |
+| PTS | `.pts` | Point cloud with intensity ✅ |
+| XYZ | `.xyz` | ASCII point cloud ✅ |
+| LAS/LAZ | `.las`/`.laz` | LiDAR format ✅ |
+
+**Usage:** Simply place your point cloud file in the scene directory. The system will auto-detect and load it.
+
+```bash
+# Supports: points3D.ply, points3D.pcd, points3D.pts, points3D.xyz, points3D.las
+python train.py -s <scene_with_any_format> -m <output>
+```
+
+See [Point Cloud Format Documentation](docs/POINT_CLOUD_FORMATS.md) for details.
+
 ## Cloning the Repository + Installation
 
 The code has been used and tested with Python 3.11 and CUDA 12.6.
