@@ -73,6 +73,28 @@ python train.py -s <scene_with_any_format> -m <output>
 
 See [Point Cloud Format Documentation](docs/POINT_CLOUD_FORMATS.md) for details.
 
+## 🌐 Web Interface
+
+A modern web application for uploading and processing point clouds through ETR:
+
+- **Drag & Drop Upload**: Intuitive file upload interface
+- **Multi-Format Support**: Works with all supported point cloud formats
+- **Interactive ETR Demo**: Try transformations without uploading files
+- **Real-Time Visualization**: Charts and data tables
+- **System Monitoring**: Check available features and dependencies
+
+### Quick Start
+
+```bash
+cd web
+pip install -r requirements.txt
+python app.py
+```
+
+Open http://localhost:5000 in your browser.
+
+See [Web Interface Documentation](web/README.md) for detailed usage and deployment instructions.
+
 ## Cloning the Repository + Installation
 
 The code has been used and tested with Python 3.11 and CUDA 12.6.
