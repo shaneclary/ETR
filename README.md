@@ -95,6 +95,30 @@ Open http://localhost:5000 in your browser.
 
 See [Web Interface Documentation](web/README.md) for detailed usage and deployment instructions.
 
+## 🎯 Training on MipNeRF360 Dataset
+
+Download and train on the MipNeRF360 benchmark dataset with ETR integration:
+
+```bash
+# Step 1: Download a scene (bicycle, garden, room, etc.)
+python scripts/download_mipnerf360.py --scenes bicycle --output data/mipnerf360
+
+# Step 2: Train with ETR analysis
+python scripts/train_with_etr.py --scene data/mipnerf360/bicycle --output output/bicycle --use-etr
+
+# Step 3: Render and evaluate
+python render.py -m output/bicycle
+python metrics.py -m output/bicycle
+```
+
+**Quick Start:** See [QUICKSTART_MIPNERF360.md](QUICKSTART_MIPNERF360.md) for immediate training
+
+**Full Guide:** See [MipNeRF360 + ETR Guide](docs/MIPNERF360_ETR_GUIDE.md) for comprehensive instructions
+
+**Available scenes:** bicycle, garden, stump, flowers, treehill (outdoor) | room, counter, kitchen, bonsai (indoor)
+
+**Note on Pretrained Models:** The HuggingFace pretrained models can be used for direct rendering, but training from scratch with the MipNeRF360 dataset allows full ETR analysis and triangle transformation insights.
+
 ## Cloning the Repository + Installation
 
 The code has been used and tested with Python 3.11 and CUDA 12.6.
