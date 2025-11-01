@@ -1,0 +1,16 @@
+# ETR Web Application Dependencies
+
+# Web Framework
+Flask==3.0.0
+flask-cors==4.0.0
+Werkzeug==3.0.1
+
+# Optional: For full ETR functionality
+# Uncomment if you want to process point clouds and run ETR
+# numpy>=1.24.0
+# torch==2.4.0
+# plyfile>=0.9
+# open3d>=0.18.0
+
+# Note: The web interface works without these dependencies in demo mode
+# Install them for full point cloud processing capabilities

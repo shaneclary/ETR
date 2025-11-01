@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETR - Entangled Triangle Rendering</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔺 ETR: Entangled Triangle Rendering</h1>
+            <p class="subtitle">Upload point clouds and process through Robert Edward Grant's ETR theory</p>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Checking system...</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel - Upload & Controls -->
+            <div class="left-panel">
+                <!-- File Upload Section -->
+                <section class="card upload-section">
+                    <h2>📁 Upload Point Cloud</h2>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📤</div>
+                        <p class="upload-text">Drag & drop your file here</p>
+                        <p class="upload-subtext">or click to browse</p>
+                        <input type="file" id="fileInput" accept=".ply,.pcd,.pts,.xyz,.las,.laz,.txt" hidden>
+                        <button class="btn btn-primary" id="browseBtn">Browse Files</button>
+                    </div>
+                    <div class="supported-formats">
+                        <p><strong>Supported formats:</strong></p>
+                        <div class="format-tags">
+                            <span class="tag">PLY</span>
+                            <span class="tag">PCD</span>
+                            <span class="tag">PTS</span>
+                            <span class="tag">XYZ</span>
+                            <span class="tag">LAS/LAZ</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- File Info Section -->
+                <section class="card file-info-section hidden" id="fileInfoSection">
+                    <h2>📄 File Information</h2>
+                    <div class="file-details" id="fileDetails"></div>
+                    <button class="btn btn-success btn-block" id="processBtn">🔄 Process with ETR</button>
+                </section>
+
+                <!-- ETR Demo Section -->
+                <section class="card demo-section">
+                    <h2>🎯 ETR Demo (No Upload Required)</h2>
+                    <p class="demo-description">Try ETR transformation with a simple right triangle</p>
+                    <div class="demo-inputs">
+                        <div class="input-group">
+                            <label>Base:</label>
+                            <input type="number" id="demoBase" value="3" min="1" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Height:</label>
+                            <input type="number" id="demoHeight" value="4" min="1" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Hypotenuse:</label>
+                            <input type="number" id="demoHyp" value="5" min="1" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Levels:</label>
+                            <input type="number" id="demoLevels" value="5" min="1" max="15" step="1">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-block" id="runDemoBtn">▶️ Run Demo</button>
+                </section>
+
+                <!-- System Info -->
+                <section class="card system-info-section">
+                    <h2>⚙️ System Status</h2>
+                    <div class="system-status" id="systemStatus">
+                        <p>Loading...</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Panel - Results & Visualization -->
+            <div class="right-panel">
+                <!-- Results Section -->
+                <section class="card results-section">
+                    <h2>📊 Results</h2>
+                    <div class="results-content" id="resultsContent">
+                        <div class="empty-state">
+                            <p>No results yet</p>
+                            <p class="empty-state-sub">Upload a file or run the demo to see ETR in action</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Visualization Section -->
+                <section class="card visualization-section">
+                    <h2>📈 Visualization</h2>
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="chart">Chart</button>
+                        <button class="tab-btn" data-tab="3d">3D View</button>
+                        <button class="tab-btn" data-tab="data">Data</button>
+                    </div>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="chartTab">
+                            <canvas id="resultsChart"></canvas>
+                        </div>
+                        <div class="tab-pane" id="3dTab">
+                            <div id="threejsContainer"></div>
+                        </div>
+                        <div class="tab-pane" id="dataTab">
+                            <div class="data-table" id="dataTable">
+                                <p class="empty-state-sub">No data to display</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>ETR Implementation based on Robert Edward Grant's Entangled Left Triangle Theory</p>
+            <p>Integrated with Triangle Splatting | <a href="https://github.com/trianglesplatting/triangle-splatting" target="_blank">GitHub</a></p>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text" id="loadingText">Processing...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast hidden" id="toast">
+        <span class="toast-message" id="toastMessage"></span>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
