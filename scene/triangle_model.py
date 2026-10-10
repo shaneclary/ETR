@@ -32,6 +32,9 @@ from utils.graphics_utils import BasicPointCloud
 import math
 
 
+INIT_SHAPES = ("fibonacci", "thoth")  # 45-45-90 triangle (upstream default) or Grant's 4.32 : 1/0.432 triangle
+
+
 def random_rotation_matrices(num_matrices, device='cpu'):
     """
     Returns a tensor of shape (num_matrices, 3, 3) containing 
@@ -121,7 +124,7 @@ def generate_triangles_in_chunks(x, y, z, radii, nb_points=3, chunk_size=2000, i
     elif init_shape == "thoth":
         base_dirs = thoth_directions(nb_points, device=device)
     else:
-        raise ValueError(f"Unknown init_shape '{init_shape}', expected 'fibonacci' or 'thoth'")
+        raise ValueError(f"Unknown init_shape '{init_shape}', expected one of {INIT_SHAPES}")
     out_points = torch.zeros(num_centers, nb_points, 3, device=device)
 
     for start_idx in range(0, num_centers, chunk_size):
@@ -467,8 +470,8 @@ class TriangleModel:
             print("Scene is large, we increase the threshold")
             self.large = True
 
-        if init_shape != "fibonacci":
-            print(f"Init shape: {init_shape} (Thoth right triangle, angles 57.599/32.401 deg, area 0.905 of the default at equal triangle_size)")
+        if init_shape == "thoth":
+            print("Init shape: thoth (Grant's right triangle, angles 57.599/32.401 deg, area 0.905 of the default at equal triangle_size)")
 
         dist2 = torch.clamp_min(distCUDA2(torch.from_numpy(np.asarray(total_points)).float().cuda()), 0.0000001)
         

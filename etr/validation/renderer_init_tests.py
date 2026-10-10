@@ -50,10 +50,19 @@ def install_simple_knn_stand_in():
     sys.modules["simple_knn._C"] = extension
 
 
+class ReferenceUnavailable(Exception):
+    """The upstream commit is not in this checkout (shallow clone or exported tree)."""
+
+
 def load_upstream_generate():
     """The original generate_triangles_in_chunks, straight from git."""
-    source = subprocess.check_output(
-        ["git", "-C", str(REPO_ROOT), "show", f"{UPSTREAM_COMMIT}:scene/triangle_model.py"], text=True)
+    try:
+        source = subprocess.check_output(
+            ["git", "-C", str(REPO_ROOT), "show", f"{UPSTREAM_COMMIT}:scene/triangle_model.py"],
+            text=True, stderr=subprocess.STDOUT)
+    except (subprocess.CalledProcessError, FileNotFoundError) as error:
+        raise ReferenceUnavailable(
+            f"commit {UPSTREAM_COMMIT} is not available; clone with full history (git fetch --unshallow)") from error
     module = types.ModuleType("upstream_triangle_model")
     exec(compile(source, "upstream_triangle_model.py", "exec"), module.__dict__)
     return module.generate_triangles_in_chunks
@@ -232,17 +241,21 @@ def run_all_tests():
 
     passed = 0
     failed = 0
+    skipped = 0
 
     for name, test_func in tests:
         try:
             test_func()
             passed += 1
+        except ReferenceUnavailable as e:
+            print(f"\n⏭ {name} SKIPPED: {e}")
+            skipped += 1
         except Exception as e:
             print(f"\n❌ {name} FAILED: {e}")
             failed += 1
 
     print("\n" + "="*70)
-    print(f"Total: {passed} passed, {failed} failed")
+    print(f"Total: {passed} passed, {failed} failed, {skipped} skipped")
     print("="*70)
 
     return passed, failed

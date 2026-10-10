@@ -49,9 +49,11 @@ class TriangleSplattingAdapter:
 
         Args:
             v0, v1, v2: Triangle vertices as (x, y, z) arrays/tensors
-            epsilon: Tolerance on |cos| of the candidate right angle (1e-4 is
-                     0.006°, above the ~6e-5 float32 rounding of the renderer's
-                     own right-triangle init at scene scale)
+            epsilon: Tolerance on |cos| of the candidate right angle. 1e-4 is
+                     0.006°; the renderer's own right-triangle init is rounded
+                     by float32 to |cos| ≈ 1e-7 × |position| / leg, so the gate
+                     holds while |position| / circumradius is below ~10³
+                     (typical COLMAP scenes: 50–500)
 
         Returns:
             RightTriangle if convertible, None otherwise

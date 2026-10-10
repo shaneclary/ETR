@@ -120,7 +120,7 @@ architecture = {
     "Core Theory": {
         "file": "etr/core/entangled_triangles.py",
         "classes": ["RightTriangle", "LeftTriangleGenerator", "FractalTriangleHierarchy"],
-        "purpose": "Mathematical foundation and fractal generation"
+        "purpose": "Mathematical foundation and the entangled right/left pair"
     },
     "GPU Operations": {
         "file": "etr/core/torch_triangle_ops.py",
@@ -268,15 +268,15 @@ Example 2: Run ETR validation
   $ python etr/validation/standalone_tests.py
   # No dependencies required
 
-Example 3: Train with ETR transformation
-  $ python train.py -s scenes/garden --use-etr -m output/garden_etr
-  # (requires implementation in train.py)
+Example 3: Train with the Thoth triangle initialisation
+  $ python train.py -s scenes/garden -m output/garden_etr --init_shape thoth
+  # or: python scripts/train_with_etr.py --scene scenes/garden --output output/garden_etr --use-etr
 
 Example 4: Generate ETR metrics
+  >>> from etr.core.triangle_adapter import TriangleSplattingAdapter
   >>> from etr.utils.etr_metrics import ETRMetrics
-  >>> metrics = ETRMetrics()
-  >>> stats = metrics.compute_statistics(triangles)
-  >>> metrics.log_to_tensorboard(writer, iteration)
+  >>> etr_data = TriangleSplattingAdapter.apply_etr_to_triangle_model(model)
+  >>> ETRMetrics.log_statistics(ETRMetrics.compute_statistics(etr_data))
 
 Example 5: Load any point cloud format
   >>> from utils.point_cloud_io import load_point_cloud

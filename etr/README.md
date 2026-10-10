@@ -235,7 +235,7 @@ python train.py -s <scene_path> -m <output_path> --init_shape thoth
 python scripts/train_with_etr.py --scene <scene_path> --output <output_path> --use-etr
 ```
 
-Training then moves the vertices freely. Midpoint splitting during densification keeps the shape (four similar copies at half scale); cloning adds in-plane noise and image gradients reshape triangles. To keep pulling shapes back towards the Thoth proportions, set `--lambda_thoth` (default 0): a loss on each triangle's two shorter sides as fractions of its longest, zero exactly on Thoth-similar triangles (`utils.loss_utils.shape_regularizer`). Any non-zero weight trades image fidelity for shape; measure PSNR/SSIM/LPIPS against the default before recommending a value. At equal circumradius the Thoth triangle has 9.5% less area than the 45-45-90 one; `--triangle_size 2.34` matches the default's initial area.
+Training then moves the vertices freely. Midpoint splitting during densification keeps the shape (four similar copies at half scale) and so does cloning (the copy is translated in its own plane); only the image gradients reshape triangles. To keep pulling shapes back towards the Thoth proportions, set `--lambda_thoth` (default 0): a loss on each triangle's two shorter sides as fractions of its longest, zero exactly on Thoth-similar triangles (`utils.loss_utils.shape_regularizer`). Any non-zero weight trades image fidelity for shape; measure PSNR/SSIM/LPIPS against the default before recommending a value. At equal circumradius the Thoth triangle has 9.5% less area than the 45-45-90 one; `--triangle_size 2.34` matches the default's initial area.
 
 ## Rendering
 
@@ -246,7 +246,7 @@ etr_data = TriangleSplattingAdapter.apply_etr_to_triangle_model(model)
 ETRMetrics.log_statistics(ETRMetrics.compute_statistics(etr_data))
 ```
 
-The adapter accepts a right angle to |cos| ≤ 1e-4 (0.006°, above the float32 rounding of the renderer's own init at scene scale), labels the longer leg as the height (Grant's convention: 3:4:5 has height 4, the Thoth triangle 3.647) and derives the hypotenuse from the legs. A freshly initialised Thoth model reports 100% right triangles with logarithmic base 1.18438.
+The adapter accepts a right angle to |cos| ≤ 1e-4 (0.006°), labels the longer leg as the height (Grant's convention: 3:4:5 has height 4, the Thoth triangle 3.647) and derives the hypotenuse from the legs. A freshly initialised Thoth model reports logarithmic base 1.18438 and 100% right triangles while |position| / circumradius stays below ~10³ (typical COLMAP scenes: 50–500); float32 rounding of the vertex coordinates grows with that ratio, so tiny triangles far from the origin can fall outside the gate.
 
 ## Theory References
 

@@ -17,7 +17,7 @@ A modern web application for uploading and processing point clouds through the *
 
 ### 📊 Visualization
 
-- **Charts**: Line charts showing scaling factors across fractal levels
+- **Charts**: Line chart of the scaling factor over repeated applications of the transformation (an involution, so values alternate with period 2)
 - **3D View**: Three.js-based 3D visualization (ready for expansion)
 - **Data Tables**: Detailed numerical data for analysis
 
@@ -77,7 +77,7 @@ The **ETR Demo** section lets you try the transformation without uploading files
    - Base (default: 3)
    - Height (default: 4)
    - Hypotenuse (default: 5)
-   - Levels (default: 5)
+   - Iterations (default: 5)
 
 2. Click **"Run Demo"**
 

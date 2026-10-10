@@ -289,7 +289,7 @@ function displayDemoResults(data) {
         <div class="result-item">
             <h3>ETR Transformation Results</h3>
             <p><strong>Input Triangle:</strong> Base=${data.input.base}, Height=${data.input.height}, Hyp=${data.input.hypotenuse}</p>
-            <p><strong>Levels Generated:</strong> ${data.levels}</p>
+            <p><strong>Iterations:</strong> ${data.levels}</p>
         </div>
     `;
 
@@ -299,7 +299,7 @@ function displayDemoResults(data) {
 
         html += `
             <div class="result-item">
-                <h3>Level ${result.level}</h3>
+                <h3>Iteration ${result.level}</h3>
                 <div class="result-grid">
                     <div class="result-field">
                         <span class="result-label">RT Base</span>
@@ -347,7 +347,7 @@ function updateChart(results) {
         appState.currentChart.destroy();
     }
 
-    const labels = results.map(r => `Level ${r.level}`);
+    const labels = results.map(r => `Iteration ${r.level}`);
     const scalingFactors = results.map(r => r.right_triangle.scaling_factor);
 
     appState.currentChart = new Chart(ctx, {
@@ -404,7 +404,7 @@ function updateDataTable(results) {
         <table>
             <thead>
                 <tr>
-                    <th>Level</th>
+                    <th>Iteration</th>
                     <th>RT Base</th>
                     <th>RT Height</th>
                     <th>RT Hyp</th>

@@ -227,6 +227,15 @@ class ValidationSuite:
         skewed[0, 2] = skewed[0, 2] + 0.3 * (skewed[0, 1] - skewed[0, 0])
         assert TriangleSplattingAdapter.batch_convert_to_etr_format({'triangles_points': skewed})['n_valid'] == 0
 
+        # Gate: 0.1° off a right angle (|cos| 1.7e-3) is not a right triangle;
+        # 0.002° (|cos| 3.5e-5, the float32 rounding level at scene scale) is
+        import numpy as np
+        for degrees_off, expect_right in ((0.1, False), (0.002, True)):
+            angle = math.radians(90 + degrees_off)
+            v2 = 4.0 * np.array([math.cos(angle), math.sin(angle), 0.0])
+            rt = TriangleSplattingAdapter.vertices_to_right_triangle(np.zeros(3), np.array([3.0, 0.0, 0.0]), v2)
+            assert (rt is not None) == expect_right, f"{degrees_off}° off a right angle → {rt}"
+
         print(f"✓ Adapter recognised {etr_data['n_valid']}/{n_triangles} float32 Thoth triangles, "
               f"logarithmic base {log_bases.mean():.5f} (Thoth {thoth_log_base:.5f})")
 

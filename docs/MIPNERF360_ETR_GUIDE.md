@@ -252,7 +252,8 @@ After training, your output directory will contain:
 output/bicycle/
 ├── point_cloud/
 │   └── iteration_30000/
-│       └── point_cloud.ply      # Final model
+│       ├── point_cloud_state_dict.pt   # Final model (what TriangleModel.load reads)
+│       └── hyperparameters.pt
 ├── cfg_args                     # Training configuration
 ├── cameras.json                 # Camera parameters
 ├── input.ply                    # Input point cloud
@@ -264,18 +265,10 @@ output/bicycle/
 When training with ETR, you'll get:
 
 1. **Thoth-seeded triangles**
-   - Every initial triangle has the Thoth proportions; midpoint splits keep them, image gradients reshape them
-   - Right triangle → left triangle pairs via `TriangleSplattingAdapter.apply_etr_to_triangle_model`
+   - Every initial triangle has the Thoth proportions; midpoint splits and clones keep them, image gradients reshape them
 
-2. **Triangle Statistics**
-   - Distribution of triangle sizes
-   - Transformation stability metrics
-   - Pythagorean validation results
-
-3. **Visualization Data**
-   - Scaling factor charts
-   - Triangle distribution plots
-   - Level-by-level analysis
+2. **Statistics on the trained model** (computed afterwards, see Option 2 below)
+   - `ETRMetrics.compute_statistics` returns the right-triangle percentage, side and scaling-factor statistics, the mean logarithmic base and the left-triangle sides
 
 ### Viewing Results
 
@@ -371,24 +364,14 @@ To fully integrate ETR into the training loop, you can modify `train.py`:
 from etr.core.triangle_adapter import TriangleSplattingAdapter
 from etr.utils.etr_metrics import ETRMetrics
 
-# In training function
-if use_etr:
-    etr_adapter = TriangleSplattingAdapter()
-    etr_metrics = ETRMetrics()
-
-    # During training loop
-    if iteration % 1000 == 0:
-        # Extract triangles
-        triangles_data = triangles.get_xyz  # Get triangle vertices
-
-        # Convert to ETR format
-        rt_triangles = etr_adapter.extract_right_triangles(triangles_data)
-
-        # Compute metrics
-        stats = etr_metrics.compute_statistics(rt_triangles)
-
-        # Log to TensorBoard
-        etr_metrics.log_to_tensorboard(tb_writer, iteration)
+# In training(), every 1000 iterations
+if iteration % 1000 == 0:
+    etr_data = TriangleSplattingAdapter.apply_etr_to_triangle_model(triangles)
+    stats = ETRMetrics.compute_statistics(etr_data)
+    ETRMetrics.log_statistics(stats, prefix=f"Iteration {iteration}")
+    if tb_writer:
+        for key, value in ETRMetrics.format_for_tensorboard(stats, iteration).items():
+            tb_writer.add_scalar(key, value, iteration)
 ```
 
 ### Option 2: Post-Training Analysis

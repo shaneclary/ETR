@@ -341,6 +341,42 @@ def test_thoth_triangle_pure_python():
     return True
 
 
+def test_training_loss_wiring():
+    """Both loss branches of training() in train.py and train_game_engine.py include loss_thoth."""
+    print("\n" + "="*70)
+    print("TEST 7: Training Loss Wiring (--lambda_thoth)")
+    print("="*70)
+
+    import ast
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[2]
+    for script in ("train.py", "train_game_engine.py"):
+        tree = ast.parse((repo / script).read_text())
+        training = next(node for node in ast.walk(tree)
+                        if isinstance(node, ast.FunctionDef) and node.name == "training")
+
+        def assignments_to(name):
+            return [node for node in ast.walk(training) if isinstance(node, ast.Assign)
+                    and [target.id for target in node.targets if isinstance(target, ast.Name)] == [name]]
+
+        # loss_thoth is weighted by opt.lambda_thoth and reads the triangle vertices
+        (thoth_assign,) = assignments_to("loss_thoth")
+        attributes = {node.attr for node in ast.walk(thoth_assign.value) if isinstance(node, ast.Attribute)}
+        assert {"lambda_thoth", "get_triangles_points"} <= attributes, f"{script}: loss_thoth is not opt.lambda_thoth × shape loss"
+
+        # ... and both the densification-phase and the final-phase loss include it
+        loss_assigns = assignments_to("loss")
+        assert len(loss_assigns) == 2, f"{script}: expected two loss assignments, found {len(loss_assigns)}"
+        for assign in loss_assigns:
+            names = {node.id for node in ast.walk(assign.value) if isinstance(node, ast.Name)}
+            assert "loss_thoth" in names, f"{script} line {assign.lineno}: loss does not include loss_thoth"
+        print(f"✓ {script}: loss_thoth = opt.lambda_thoth × shape loss, added in both loss branches")
+
+    print("\n✅ Training Loss Wiring Test PASSED")
+    return True
+
+
 def run_all_tests():
     """Run all standalone tests."""
     print("="*70)
@@ -355,6 +391,7 @@ def run_all_tests():
         ("Numerical Stability", test_numerical_stability),
         ("Edge Cases", test_edge_cases),
         ("Thoth Triangle", test_thoth_triangle_pure_python),
+        ("Training Loss Wiring", test_training_loss_wiring),
     ]
 
     results = []

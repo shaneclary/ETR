@@ -116,11 +116,11 @@ def build_train_command(args):
     if args.outdoor:
         cmd.append('--outdoor')
 
-    # ETR arguments: seed the renderer with Thoth triangles and, optionally, keep pulling shapes towards them
+    # ETR arguments (independent in train.py): the Thoth seed, and optionally the shape regularizer
     if args.use_etr:
         cmd.extend(['--init_shape', 'thoth'])
-        if args.lambda_thoth > 0:
-            cmd.extend(['--lambda_thoth', str(args.lambda_thoth)])
+    if args.lambda_thoth > 0:
+        cmd.extend(['--lambda_thoth', str(args.lambda_thoth)])
 
     return cmd
 
@@ -209,7 +209,7 @@ For more information on ETR, see: etr/README.md
     parser.add_argument('--use-etr', action='store_true',
                        help='Initialise every triangle as a Thoth triangle (train.py --init_shape thoth)')
     parser.add_argument('--lambda-thoth', type=float, default=0.0,
-                       help='Weight of the loss pulling triangle shapes towards the Thoth triangle during training (default: 0, shapes stay free)')
+                       help='Weight of the loss pulling triangle shapes towards the Thoth triangle during training (default: 0, shapes stay free; works with or without --use-etr)')
 
     # Validation
     parser.add_argument('--skip-checks', action='store_true',

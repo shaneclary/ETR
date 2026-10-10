@@ -25,7 +25,7 @@ import random
 import json
 from utils.system_utils import searchForMaxIteration
 from scene.dataset_readers import sceneLoadTypeCallbacks
-from scene.triangle_model import TriangleModel
+from scene.triangle_model import TriangleModel, INIT_SHAPES
 from arguments import ModelParams
 from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON
 
@@ -37,6 +37,8 @@ class Scene:
         """b
         :param path: Path to colmap scene main folder.
         """
+        if init_shape not in INIT_SHAPES:
+            raise ValueError(f"Unknown init_shape '{init_shape}', expected one of {INIT_SHAPES}")
         self.model_path = args.model_path
         self.loaded_iter = None
         self.triangles = triangles

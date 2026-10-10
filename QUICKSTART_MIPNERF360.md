@@ -36,7 +36,7 @@ python scripts/download_mipnerf360.py --outdoor --output data/mipnerf360
 python train.py -s data/mipnerf360/bicycle -m output/bicycle
 ```
 
-### Option B: With ETR Analysis
+### Option B: With the Thoth triangle initialisation (`--use-etr`)
 
 ```bash
 python scripts/train_with_etr.py \
@@ -77,7 +77,7 @@ tensorboard --logdir output/bicycle
 | **Indoor** | `python train.py -s <scene> -m <output>` | room, counter, bonsai |
 | **Quick Test** | `python train.py -s <scene> -m <output> -r 2 --iterations 10000` | Fast preview |
 | **High Quality** | `python train.py -s <scene> -m <output> --iterations 40000` | Best results |
-| **With ETR** | `python scripts/train_with_etr.py --scene <s> --output <o> --use-etr` | ETR analysis |
+| **With ETR** | `python scripts/train_with_etr.py --scene <s> --output <o> --use-etr` | Thoth init (`train.py --init_shape thoth`) |
 
 ## Recommended First Training
 
@@ -121,7 +121,7 @@ To use pretrained models:
    python render.py -m output/<scene_name>
    ```
 
-**Note:** ETR analysis works best with training from scratch, as it analyzes triangle evolution during training.
+**Note:** `--use-etr` only changes the initial triangle shape; ETR statistics are computed on a model afterwards with `TriangleSplattingAdapter.apply_etr_to_triangle_model` (see `etr/README.md`).
 
 ## Troubleshooting
 
@@ -207,7 +207,7 @@ python create_video.py -m output/bicycle
 2. ✅ Train your first model
 3. ✅ Render and evaluate
 4. 🎯 Try different scenes (indoor vs outdoor)
-5. 🎯 Experiment with ETR analysis
+5. 🎯 Try the Thoth init shape (`--use-etr`)
 6. 🎯 Use web interface for point cloud upload
 7. 🎯 Train on your own data
 
