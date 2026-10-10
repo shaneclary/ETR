@@ -79,6 +79,20 @@ class RightTriangle:
         angle_height = math.atan2(self.base, self.height)
         return (angle_base, angle_height, math.pi/2)
 
+    def unit_circumcircle_vertices(self) -> Tuple[Tuple[float, float, float], ...]:
+        """
+        Vertices of this triangle inscribed in the unit circle in the xy-plane.
+
+        The hypotenuse is the diameter from (-1, 0, 0) to (1, 0, 0) (Thales), so
+        the circumcentre is the origin and the right angle sits at the third
+        vertex, (cos 2θ, sin 2θ, 0) with θ the angle at the base vertex.
+        Scaling by r gives circumradius r, the convention Triangle Splatting
+        uses for its initial triangles.
+        """
+        cos_2theta = (self.base**2 - self.height**2) / self.hypotenuse**2
+        sin_2theta = 2 * self.base * self.height / self.hypotenuse**2
+        return ((-1.0, 0.0, 0.0), (1.0, 0.0, 0.0), (cos_2theta, sin_2theta, 0.0))
+
     def to_dict(self) -> Dict:
         """Export all properties as dictionary."""
         return {

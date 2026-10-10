@@ -102,6 +102,7 @@ class OptimizationParams(ParamGroup):
         self.triangle_size = 2.23
         self.set_opacity = 0.28
         self.set_sigma =  1.16
+        self.init_shape = "fibonacci" # fibonacci is a 45-45-90 triangle, thoth is Grant's 4.32 : 1/0.432 triangle
 
         self.noise_lr = 5e5
         self.mask_dead = 0.08

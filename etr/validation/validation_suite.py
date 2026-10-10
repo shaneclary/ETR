@@ -20,7 +20,7 @@ from etr.core.entangled_triangles import (
     FractalTriangleHierarchy,
     run_3_4_5_validation
 )
-from etr.core.thoth_geometry import run_thoth_validation
+from etr.core.thoth_geometry import thoth_triangle, run_thoth_validation
 
 # Try to import optional dependencies
 try:
@@ -253,6 +253,27 @@ class ValidationSuite:
     def test_thoth_triangle(self):
         """Test Grant's 4.32 : 1/0.432 triangle through the ETR classes."""
         run_thoth_validation()
+
+        # Renderer init layout: vertices on the unit circumcircle, hypotenuse as
+        # the diameter (same convention as the default 45-45-90 init triangle)
+        rt = thoth_triangle()
+        v0, v1, v2 = rt.unit_circumcircle_vertices()
+        for vertex in (v0, v1, v2):
+            assert abs(math.dist(vertex, (0, 0, 0)) - 1) < 1e-12, f"Vertex {vertex} not on unit circle"
+            assert vertex[2] == 0, f"Vertex {vertex} not in the xy-plane"
+        assert math.dist(v0, v1) == 2, "Hypotenuse should be the diameter"
+        assert abs(math.dist(v0, v2) - 2 * rt.base / rt.hypotenuse) < 1e-12, "v0-v2 should be the scaled base"
+        assert abs(math.dist(v1, v2) - 2 * rt.height / rt.hypotenuse) < 1e-12, "v1-v2 should be the scaled height"
+        leg_a = tuple(v0[i] - v2[i] for i in range(3))
+        leg_b = tuple(v1[i] - v2[i] for i in range(3))
+        assert abs(sum(leg_a[i] * leg_b[i] for i in range(3))) < 1e-12, "Right angle should be at v2"
+        assert abs(math.degrees(math.atan2(v2[1], v2[0])) - 2 * 57.599323592) < 1e-6, "v2 should sit at 2 × 57.6°"
+
+        # The 3:4:5 layout is the same construction
+        v0, v1, v2 = RightTriangle(base=3, height=4, hypotenuse=5).unit_circumcircle_vertices()
+        assert v2 == (-0.28, 0.96, 0.0), f"3:4:5 right-angle vertex should be (-0.28, 0.96, 0), got {v2}"
+
+        print("✓ Thoth triangle validated, including the unit-circumcircle init layout")
 
 
 if __name__ == "__main__":

@@ -82,12 +82,30 @@ def fibonacci_directions(nb_points, device='cpu'):
     return torch.stack(directions, dim=0)
 
 
-def generate_triangles_in_chunks(x, y, z, radii, nb_points=3, chunk_size=2000):
+def thoth_directions(nb_points, device='cpu'):
+    """
+    Grant's Thoth triangle (hypotenuse 4.32, base 1/0.432) inscribed in the
+    unit circle, hypotenuse as the diameter. Same circumradius-1 convention
+    as the three Fibonacci directions, which form a 45-45-90 triangle.
+    Returns a tensor of shape (3, 3).
+    """
+    if nb_points != 3:
+        raise ValueError(f"The Thoth init shape is a triangle, so nb_points must be 3, got {nb_points}")
+    from etr.core.thoth_geometry import thoth_triangle
+    return torch.tensor(thoth_triangle().unit_circumcircle_vertices(), device=device)
+
+
+def generate_triangles_in_chunks(x, y, z, radii, nb_points=3, chunk_size=2000, init_shape="fibonacci"):
     device = x.device
 
     num_centers = x.shape[0]
 
-    base_dirs = fibonacci_directions(nb_points, device=device)
+    if init_shape == "fibonacci":
+        base_dirs = fibonacci_directions(nb_points, device=device)
+    elif init_shape == "thoth":
+        base_dirs = thoth_directions(nb_points, device=device)
+    else:
+        raise ValueError(f"Unknown init_shape '{init_shape}', expected 'fibonacci' or 'thoth'")
     out_points = torch.zeros(num_centers, nb_points, 3, device=device)
 
     for start_idx in range(0, num_centers, chunk_size):
@@ -392,7 +410,7 @@ class TriangleModel:
 
         return np.asarray(points)
 
-    def create_from_pcd(self, pcd : BasicPointCloud, spatial_lr_scale : float, opacity : float, init_size : float, nb_points: int, set_sigma : float, no_dome: bool):
+    def create_from_pcd(self, pcd : BasicPointCloud, spatial_lr_scale : float, opacity : float, init_size : float, nb_points: int, set_sigma : float, no_dome: bool, init_shape: str = "fibonacci"):
 
         self.spatial_lr_scale = spatial_lr_scale
         pcd_points = np.asarray(pcd.points)
@@ -437,7 +455,7 @@ class TriangleModel:
         
         radii = init_size * torch.sqrt(dist2).unsqueeze(1)
 
-        points_per_triangle = generate_triangles_in_chunks(x, y, z, radii, nb_points)
+        points_per_triangle = generate_triangles_in_chunks(x, y, z, radii, nb_points, init_shape=init_shape)
 
         num_points_per_triangle = []
         for i in range(points_per_triangle.size(0)):
