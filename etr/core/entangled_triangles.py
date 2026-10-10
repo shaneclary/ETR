@@ -20,7 +20,7 @@ class RightTriangle:
     Right triangle representation with full geometric properties.
 
     Convention:
-    - base (a): side opposite to right angle
+    - base (a): leg adjacent to the right angle
     - height (b): perpendicular side
     - hypotenuse (c): longest side
     - All satisfy: a² + b² = c²
@@ -103,8 +103,8 @@ class LeftTriangleGenerator:
     Generate entangled left triangles from right triangles.
 
     Implements Grant's transformation:
-    - LT_Height = 1 / RT_Height
-    - LT_Hypotenuse = 1 / RT_Hypotenuse
+    - LT_Height = 1 / RT_Hypotenuse
+    - LT_Hypotenuse = 1 / RT_Height
     - LT_Base = RT_Base / (RT_Height × RT_Hypotenuse)  [NON-RECIPROCAL]
     """
 
@@ -294,8 +294,8 @@ def run_3_4_5_validation():
 
     # Check dimensions
     assert abs(lt.base - 0.15) < 1e-10, f"Left base should be 0.15, got {lt.base}"
-    assert abs(lt.height - 0.25) < 1e-10, f"Left height should be 0.25, got {lt.height}"
-    assert abs(lt.hypotenuse - 0.2) < 1e-10, f"Left hypotenuse should be 0.2, got {lt.hypotenuse}"
+    assert abs(lt.height - 0.2) < 1e-10, f"Left height should be 0.2, got {lt.height}"
+    assert abs(lt.hypotenuse - 0.25) < 1e-10, f"Left hypotenuse should be 0.25, got {lt.hypotenuse}"
     print("✓ Dimension transformation correct")
 
     # Check scaling factor

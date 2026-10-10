@@ -11,8 +11,8 @@ Every right triangle generates an "entangled left triangle" through inverse scal
 Given a right triangle with dimensions (base, height, hypotenuse), the entangled left triangle is generated via:
 
 - **Scaling Factor** = Height × Hypotenuse
-- **LT_Height** = 1 / RT_Height
-- **LT_Hypotenuse** = 1 / RT_Hypotenuse
+- **LT_Height** = 1 / RT_Hypotenuse
+- **LT_Hypotenuse** = 1 / RT_Height
 - **LT_Base** = RT_Base / (RT_Height × RT_Hypotenuse)  [non-reciprocal]
 
 ### Key Properties
@@ -27,7 +27,7 @@ Given a right triangle with dimensions (base, height, hypotenuse), the entangled
 ```
 Right Triangle:  base=3, height=4, hypotenuse=5
 Scaling Factor:  4 × 5 = 20
-Left Triangle:   base=0.15, height=0.25, hypotenuse=0.2
+Left Triangle:   base=0.15, height=0.2, hypotenuse=0.25
 
 Verification:
 - Perimeter Ratio: 12 / 0.6 = 20 ✓
@@ -239,8 +239,8 @@ For any right triangle satisfying a² + b² = c²:
 1. **Scaling Factor**: S = b × c (Height × Hypotenuse)
 2. **Left Triangle Generation**:
    - l_a = a / S
-   - l_b = 1 / b
-   - l_c = 1 / c
+   - l_b = 1 / c
+   - l_c = 1 / b
 3. **Verification**: l_a² + l_b² = l_c² (Pythagorean theorem preserved)
 4. **Angular Preservation**: All angles remain identical
 5. **Perimeter Scaling**: P_right / P_left = S

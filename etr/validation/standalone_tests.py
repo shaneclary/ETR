@@ -251,6 +251,87 @@ def test_edge_cases():
     return True
 
 
+def test_thoth_triangle_pure_python():
+    """Test Grant's 4.32 : 1/0.432 triangle (#ThothConstant post) using only stdlib."""
+    print("\n" + "="*70)
+    print("TEST 6: Thoth Triangle, hypotenuse 4.32, base 1/0.432 (Pure Python)")
+    print("="*70)
+
+    phi = (1 + math.sqrt(5)) / 2
+
+    rt_hyp = 4.32
+    rt_base = 1 / 0.432
+    rt_height = math.sqrt(rt_hyp**2 - rt_base**2)
+
+    # Defining relation: hypotenuse × base = 10 (base is 1/hypotenuse shifted one decimal)
+    assert abs(rt_hyp * rt_base - 10) < 1e-12, f"hyp × base should be 10, got {rt_hyp * rt_base}"
+    print(f"✓ hypotenuse × base = {rt_hyp} × {rt_base:.10f} = {rt_hyp * rt_base:.12f}")
+
+    # Height from Pythagoras (40-digit value: 3.647469310784376...)
+    assert abs(rt_height - 3.647469310784376) < 1e-12, f"Height should be 3.6474693108, got {rt_height}"
+    print(f"✓ Height = √(4.32² − (1/0.432)²) = {rt_height:.10f}")
+
+    # Golden ratio: (1/φ² + 1)⁴ is exactly 25/φ⁴ = 125 − 75φ ...
+    phi_height = (1 / phi**2 + 1) ** 4
+    assert abs(phi_height - 25 / phi**4) < 1e-12, "(1/φ² + 1)⁴ should equal 25/φ⁴"
+    assert abs(phi_height - (125 - 75 * phi)) < 1e-12, "(1/φ² + 1)⁴ should equal 125 − 75φ"
+    print(f"✓ (1/φ² + 1)⁴ = 25/φ⁴ = 125 − 75φ = {phi_height:.10f}")
+
+    # ... but the height only approximates it (5.06 ppm), it is not an identity
+    relative_gap = (rt_height - phi_height) / phi_height
+    assert abs(relative_gap - 5.062995e-6) < 1e-11, f"φ gap should be 5.063e-6, got {relative_gap:.6e}"
+    print(f"✓ Height − 25/φ⁴ = {rt_height - phi_height:.3e} (relative {relative_gap:.3e}, approximate)")
+
+    # Hence 4.32, 1/0.432 and 25/φ⁴ cannot all be exact sides of one right triangle
+    phi_residual = rt_base**2 + phi_height**2 - rt_hyp**2
+    assert abs(phi_residual + 1.3471548e-4) < 1e-10, f"Residual should be -1.347e-4, got {phi_residual:.6e}"
+    print(f"✓ Pythagorean residual with height = 25/φ⁴: {phi_residual:.3e} (not a right triangle)")
+
+    # The hypotenuse that makes the height exactly 25/φ⁴ (keeping hyp × base = 10)
+    phi_hyp = math.sqrt((phi_height**2 + math.sqrt(phi_height**4 + 400)) / 2)
+    phi_hyp_height = math.sqrt(phi_hyp**2 - (10 / phi_hyp)**2)
+    assert abs(phi_hyp - 4.319987886087017) < 1e-12, f"φ-exact hypotenuse should be 4.3199879, got {phi_hyp}"
+    assert abs(phi_hyp_height - phi_height) < 1e-12, "φ-exact hypotenuse should give height 25/φ⁴"
+    print(f"✓ φ-exact hypotenuse = {phi_hyp:.10f} (4.32 is this rounded; gap {(rt_hyp - phi_hyp) / phi_hyp:.2e})")
+
+    # The drawing's labels 4 5/16, 3 10/16, 2 5/16 are nearest-sixteenth roundings
+    assert round(rt_hyp * 16) == 69, "Hypotenuse should round to 4 5/16 = 69/16"
+    assert round(rt_height * 16) == 58, "Height should round to 3 10/16 = 58/16"
+    assert round(rt_base * 16) == 37, "Base should round to 2 5/16 = 37/16"
+    print("✓ Sixteenths: hyp ≈ 4 5/16, height ≈ 3 10/16, base ≈ 2 5/16")
+
+    # ETR transform (height and hypotenuse roles swap)
+    scaling = rt_height * rt_hyp
+    lt_height = 1.0 / rt_hyp
+    lt_hyp = 1.0 / rt_height
+    lt_base = rt_base / scaling
+
+    lt_check = abs(lt_base**2 + lt_height**2 - lt_hyp**2)
+    assert lt_check < 1e-12, f"Left triangle not right! Error: {lt_check}"
+    print(f"✓ Left triangle: base={lt_base:.10f}, height={lt_height:.10f}, hyp={lt_hyp:.10f}")
+
+    # Entanglement: LT height = 1/hyp = base/10, the same digits as the right triangle's base
+    assert abs(lt_height - rt_base / 10) < 1e-15, f"LT height should be base/10, got {lt_height}"
+    print(f"✓ LT height = 1/4.32 = {lt_height:.10f} = RT base / 10")
+
+    # Fractal Root: √10 × (√10/10) = 1. hyp = √10 is the degenerate member of
+    # the hyp × base = 10 family (base = hyp, height = 0)
+    fractal_root = math.sqrt(10)
+    assert abs(fractal_root * (fractal_root / 10) - 1) < 1e-15, "√10 × √10/10 should be 1"
+    assert abs(fractal_root - 10 / fractal_root) < 1e-15, "At hyp = √10 the base equals the hypotenuse"
+    print(f"✓ Fractal Root: {fractal_root:.8f} × {fractal_root / 10:.9f} = 1 (degenerate member)")
+
+    # 432² vs the speed of light in miles per second (unit-dependent, approximate)
+    assert 432**2 == 186624, "432² should be 186,624"
+    light_mi_s = 299792458 / 1609.344
+    light_gap = (432**2 - light_mi_s) / light_mi_s
+    assert abs(light_gap - 1.8337908e-3) < 1e-9, f"Gap should be +0.1834%, got {light_gap:.6e}"
+    print(f"✓ 432² = 186,624 vs c = {light_mi_s:,.3f} mi/s (relative {light_gap:+.4%}, approximate)")
+
+    print("\n✅ Thoth Triangle Test PASSED")
+    return True
+
+
 def run_all_tests():
     """Run all standalone tests."""
     print("="*70)
@@ -264,6 +345,7 @@ def run_all_tests():
         ("Fractal Hierarchy", test_fractal_hierarchy),
         ("Numerical Stability", test_numerical_stability),
         ("Edge Cases", test_edge_cases),
+        ("Thoth Triangle", test_thoth_triangle_pure_python),
     ]
 
     results = []
