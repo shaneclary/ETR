@@ -63,6 +63,8 @@ class ValidationSuite:
 
         if TORCH_AVAILABLE:
             tests.append(("Batch Processing", self.test_batch_processing))
+            tests.append(("Thoth Shape Regularizer", self.test_thoth_shape_regularizer))
+            tests.append(("Adapter on Renderer Triangles", self.test_adapter_on_renderer_triangles))
 
         passed = 0
         failed = 0
@@ -145,6 +147,86 @@ class ValidationSuite:
 
         print(f"✓ Batch processing validated on {n_triangles} triangles")
         print(f"  Mean scaling factor: {scaling.mean().item():.4f}")
+
+    def test_thoth_shape_regularizer(self):
+        """Test the training-time pull towards the Thoth shape (utils.loss_utils.shape_regularizer)."""
+        if not TORCH_AVAILABLE:
+            print("Skipping shape regularizer test (PyTorch not available)")
+            return
+
+        from utils.loss_utils import shape_regularizer
+        from etr.core.thoth_geometry import THOTH_SIDE_RATIOS
+
+        torch.manual_seed(0)
+        thoth = torch.tensor(thoth_triangle().unit_circumcircle_vertices(), dtype=torch.float64)
+        rotations = torch.linalg.qr(torch.randn(64, 3, 3, dtype=torch.float64)).Q
+        scales = torch.logspace(-4, 3, 64, dtype=torch.float64).view(-1, 1, 1)
+        permutation = torch.tensor([2, 0, 1])
+        thoth_batch = (thoth[permutation] @ rotations.transpose(1, 2)) * scales + torch.randn(64, 1, 3, dtype=torch.float64) * 5
+
+        # Zero for any triangle similar to Thoth, whatever its scale, rotation, position or vertex order
+        loss = shape_regularizer(thoth_batch, THOTH_SIDE_RATIOS)
+        assert loss.shape == (64,) and loss.max() < 1e-20, f"Thoth triangles should score 0, got max {loss.max():.2e}"
+
+        # 3:4:5 scores (0.6 - 0.5358)² + (0.8 - 0.8443)² = 0.00608; equilateral scores 2 × (1 - ratio)²
+        rt_345 = torch.tensor([[[0.0, 0, 0], [3, 0, 0], [0, 4, 0]]], dtype=torch.float64)
+        expected_345 = (0.6 - THOTH_SIDE_RATIOS[0]) ** 2 + (0.8 - THOTH_SIDE_RATIOS[1]) ** 2
+        assert abs(shape_regularizer(rt_345, THOTH_SIDE_RATIOS).item() - expected_345) < 1e-12
+        assert abs(shape_regularizer(rt_345 * 1000, THOTH_SIDE_RATIOS).item() - expected_345) < 1e-12, "not scale invariant"
+        equilateral = torch.tensor([[[0.0, 0, 0], [1, 0, 0], [0.5, math.sqrt(3) / 2, 0]]], dtype=torch.float64)
+        expected_equilateral = sum((1 - ratio) ** 2 for ratio in THOTH_SIDE_RATIOS)
+        assert abs(shape_regularizer(equilateral, THOTH_SIDE_RATIOS).item() - expected_equilateral) < 1e-12
+
+        # Gradient descent on the regularizer alone turns a 45-45-90 triangle into a Thoth triangle
+        vertices = torch.tensor([[[0.0, 0, 1], [1, 0, 0], [0, 0, -1]]], dtype=torch.float64, requires_grad=True)
+        optimizer = torch.optim.Adam([vertices], lr=0.01)
+        start = shape_regularizer(vertices, THOTH_SIDE_RATIOS).item()
+        for _ in range(500):
+            optimizer.zero_grad()
+            shape_regularizer(vertices, THOTH_SIDE_RATIOS).sum().backward()
+            optimizer.step()
+        end = shape_regularizer(vertices, THOTH_SIDE_RATIOS).item()
+        assert end < start * 1e-4, f"regularizer should drive the shape to Thoth: {start:.3e} -> {end:.3e}"
+        sides = sorted((vertices[0, i] - vertices[0, j]).norm().item() for i, j in ((0, 1), (1, 2), (2, 0)))
+        angle = math.degrees(math.atan2(sides[1], sides[0]))
+        assert abs(angle - 57.599323592) < 0.05, f"optimised triangle should have the 57.6° Thoth angle, got {angle:.4f}°"
+
+        print(f"✓ Shape regularizer: 0 on Thoth triangles, 3:4:5 scores {expected_345:.5f}, "
+              f"45-45-90 optimised to {angle:.3f}° ({start:.2e} -> {end:.2e})")
+
+    def test_adapter_on_renderer_triangles(self):
+        """Test that ETR recognises float32 Thoth init triangles at scene scale (the renderer's data)."""
+        if not TORCH_AVAILABLE:
+            print("Skipping adapter test (PyTorch not available)")
+            return
+
+        from etr.core.triangle_adapter import TriangleSplattingAdapter
+
+        torch.manual_seed(1)
+        n_triangles = 2000
+        thoth = torch.tensor(thoth_triangle().unit_circumcircle_vertices())
+        rotations = torch.linalg.qr(torch.randn(n_triangles, 3, 3)).Q
+        centers = torch.randn(n_triangles, 1, 3) * 5          # scene-scale positions ...
+        radii = torch.rand(n_triangles, 1, 1) * 0.5 + 0.01     # ... with small triangles, as create_from_pcd makes
+        triangles_points = (thoth @ rotations.transpose(1, 2)) * radii + centers
+        assert triangles_points.dtype == torch.float32
+
+        etr_data = TriangleSplattingAdapter.batch_convert_to_etr_format({'triangles_points': triangles_points})
+        assert etr_data['n_valid'] == n_triangles, f"only {etr_data['n_valid']}/{n_triangles} recognised as right triangles"
+
+        # Shape survives float32: hypotenuse = 2r, logarithmic base c/h = 1.18438
+        assert torch.allclose(etr_data['hypotenuses'], 2 * radii[:, 0, 0], rtol=1e-4)
+        log_bases = TorchTriangleOps.compute_logarithmic_bases(etr_data['heights'], etr_data['hypotenuses'])
+        thoth_log_base = thoth_triangle().logarithmic_base
+        assert (log_bases - thoth_log_base).abs().max() < 2e-3, f"log base drift {(log_bases - thoth_log_base).abs().max():.2e}"
+
+        # A clearly non-right triangle is still rejected
+        skewed = triangles_points[:1].clone()
+        skewed[0, 2] = skewed[0, 2] + 0.3 * (skewed[0, 1] - skewed[0, 0])
+        assert TriangleSplattingAdapter.batch_convert_to_etr_format({'triangles_points': skewed})['n_valid'] == 0
+
+        print(f"✓ Adapter recognised {etr_data['n_valid']}/{n_triangles} float32 Thoth triangles, "
+              f"logarithmic base {log_bases.mean():.5f} (Thoth {thoth_log_base:.5f})")
 
     def test_angle_preservation(self):
         """Test that angles are preserved in all transformations."""

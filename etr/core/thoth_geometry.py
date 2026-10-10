@@ -50,6 +50,12 @@ def thoth_triangle(hypotenuse: float = THOTH_HYPOTENUSE) -> RightTriangle:
     return RightTriangle(base=base, height=height, hypotenuse=hypotenuse)
 
 
+# Legs as fractions of the hypotenuse, shorter first: (0.5358, 0.8443). The
+# shape target for utils.loss_utils.shape_regularizer.
+_THOTH = thoth_triangle()
+THOTH_SIDE_RATIOS = (_THOTH.base / _THOTH.hypotenuse, _THOTH.height / _THOTH.hypotenuse)
+
+
 def run_thoth_validation():
     """
     Validate every equation from the post against ETR's geometry.

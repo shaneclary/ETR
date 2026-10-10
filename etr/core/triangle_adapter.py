@@ -38,7 +38,7 @@ class TriangleSplattingAdapter:
     def vertices_to_right_triangle(v0,
                                    v1,
                                    v2,
-                                   epsilon: float = 1e-8) -> Optional[RightTriangle]:
+                                   epsilon: float = 1e-4) -> Optional[RightTriangle]:
         """
         Convert three vertices to right triangle representation.
 
@@ -49,7 +49,9 @@ class TriangleSplattingAdapter:
 
         Args:
             v0, v1, v2: Triangle vertices as (x, y, z) arrays/tensors
-            epsilon: Tolerance for right angle detection
+            epsilon: Tolerance on |cos| of the candidate right angle (1e-4 is
+                     0.006°, above the ~6e-5 float32 rounding of the renderer's
+                     own right-triangle init at scene scale)
 
         Returns:
             RightTriangle if convertible, None otherwise
@@ -73,32 +75,39 @@ class TriangleSplattingAdapter:
         b = np.linalg.norm(e1)
         c = np.linalg.norm(e2)
 
-        # Check for right angle using dot product
-        # If dot product ≈ 0, angle is 90°
-        dot01 = np.dot(e0, e1)
-        dot12 = np.dot(e1, e2)
-        dot20 = np.dot(e2, e0)
+        if min(a, b, c) <= 0:
+            return None
+
+        # Check for right angle using the cosine between adjacent edges
+        # If |cos| ≈ 0, angle is 90°
+        cos01 = abs(np.dot(e0, e1)) / (a * b)
+        cos12 = abs(np.dot(e1, e2)) / (b * c)
+        cos20 = abs(np.dot(e2, e0)) / (c * a)
 
         # Find which angle (if any) is closest to 90°
-        dots = [abs(dot01), abs(dot12), abs(dot20)]
-        min_dot_idx = np.argmin(dots)
+        cosines = [cos01, cos12, cos20]
+        min_dot_idx = np.argmin(cosines)
 
-        if dots[min_dot_idx] > epsilon * max(a, b, c):
+        if cosines[min_dot_idx] > epsilon:
             # Not a right triangle - could approximate or skip
             return None
 
-        # Identify base, height, hypotenuse based on right angle position
+        # The two legs meet at the right angle. Grant labels the longer leg the
+        # height (3:4:5 has height 4, the Thoth triangle height 3.647), and the
+        # ETR transform is not symmetric in base/height, so label by length,
+        # not vertex order. The legs determine a right triangle, so the
+        # hypotenuse is derived from them rather than measured: float32
+        # vertices at scene scale carry a relative error of ~1e-7 × |position|
+        # / size, which would otherwise fail RightTriangle's Pythagorean check.
         if min_dot_idx == 0:  # Right angle at v1
-            base, height, hyp = a, b, c
+            legs = (a, b)
         elif min_dot_idx == 1:  # Right angle at v2
-            base, height, hyp = b, c, a
+            legs = (b, c)
         else:  # Right angle at v0
-            base, height, hyp = c, a, b
+            legs = (c, a)
+        base, height = min(legs), max(legs)
 
-        try:
-            return RightTriangle(base=base, height=height, hypotenuse=hyp)
-        except ValueError:
-            return None
+        return RightTriangle(base=base, height=height, hypotenuse=math.hypot(base, height))
 
     @staticmethod
     def right_triangle_to_vertices(rt: RightTriangle,

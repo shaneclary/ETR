@@ -23,7 +23,8 @@
 import os
 import torch
 from random import randint
-from utils.loss_utils import l1_loss, ssim, equilateral_regularizer, l2_loss
+from utils.loss_utils import l1_loss, ssim, equilateral_regularizer, shape_regularizer, l2_loss
+from etr.core.thoth_geometry import THOTH_SIDE_RATIOS
 from triangle_renderer import render
 import sys
 from scene import Scene, TriangleModel
@@ -159,14 +160,16 @@ def training(
         normal_error = (1 - (rend_normal * surf_normal).sum(dim=0))[None]
         normal_loss = lambda_normal * (normal_error).mean()
 
-        loss_size = 1 / equilateral_regularizer(triangles.get_triangles_points).mean() 
+        loss_size = 1 / equilateral_regularizer(triangles.get_triangles_points).mean()
         loss_size = loss_size * opt.lambda_size
 
+        # loss shape: pull every triangle towards the Thoth proportions (off when lambda_thoth is 0)
+        loss_thoth = shape_regularizer(triangles.get_triangles_points, THOTH_SIDE_RATIOS).mean() * opt.lambda_thoth if opt.lambda_thoth > 0 else 0
 
         if iteration < opt.densify_until_iter:
-            loss = loss_image + loss_opacity + normal_loss + dist_loss + loss_size
+            loss = loss_image + loss_opacity + normal_loss + dist_loss + loss_size + loss_thoth
         else:
-            loss = loss_image + loss_opacity + normal_loss + dist_loss + torch.abs(triangles.get_sigma).mean() + 1 / (torch.abs(triangles.get_opacity).mean() * 0.05) # we push the triangles towards being more opaque and solid
+            loss = loss_image + loss_opacity + normal_loss + dist_loss + loss_thoth + torch.abs(triangles.get_sigma).mean() + 1 / (torch.abs(triangles.get_opacity).mean() * 0.05) # we push the triangles towards being more opaque and solid
 
         loss.backward()
      

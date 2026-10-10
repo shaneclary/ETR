@@ -110,6 +110,7 @@ class OptimizationParams(ParamGroup):
         self.lambda_dist = 0.0
         self.lambda_opacity = 0.0055
         self.lambda_size = 0.00000001
+        self.lambda_thoth = 0.0 # pulls triangle shapes towards Grant's Thoth triangle; 0 leaves shapes free
         self.opacity_dead = 0.014
         self.importance_threshold = 0.022
         self.iteration_mesh = 5000

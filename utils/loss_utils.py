@@ -41,6 +41,22 @@ def equilateral_regularizer(triangles):
     return area
 
 
+def shape_regularizer(triangles, side_ratios):
+    """
+    Per-triangle squared deviation of the two shorter sides, as fractions of
+    the longest side, from side_ratios (shorter first). Invariant to scale,
+    rotation and vertex order; zero exactly when the triangle is similar to
+    the target shape.
+    """
+    edges = torch.stack([triangles[:, 1, :] - triangles[:, 0, :],
+                         triangles[:, 2, :] - triangles[:, 1, :],
+                         triangles[:, 0, :] - triangles[:, 2, :]], dim=1)
+    lengths = torch.sqrt((edges ** 2).sum(dim=-1) + 1e-20).sort(dim=1).values
+    target = torch.as_tensor(side_ratios, dtype=lengths.dtype, device=lengths.device)
+
+    return ((lengths[:, :2] / lengths[:, 2:3] - target) ** 2).sum(dim=1)
+
+
 def l1_loss(network_output, gt):
     return torch.abs((network_output - gt)).mean()
 
