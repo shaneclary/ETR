@@ -123,9 +123,10 @@ class ValidationSuite:
 
         n_triangles = 10000
 
-        # Generate random right triangles
-        heights = torch.rand(n_triangles) * 10 + 1  # [1, 11]
-        bases = torch.rand(n_triangles) * 10 + 1
+        # Generate random right triangles (float64: RightTriangle's Pythagorean
+        # check is definitional, float32 is absorbed only in the adapter)
+        heights = torch.rand(n_triangles, dtype=torch.float64) * 10 + 1  # [1, 11]
+        bases = torch.rand(n_triangles, dtype=torch.float64) * 10 + 1
         hypotenuses = torch.sqrt(bases**2 + heights**2)
 
         # Batch transform

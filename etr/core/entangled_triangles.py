@@ -42,13 +42,15 @@ class RightTriangle:
         self._validate()
         self._compute_properties()
 
-    def _validate(self, epsilon: float = 1e-6):
+    def _validate(self, epsilon: float = 1e-10):
         """
         Verify this is a valid right triangle.
 
-        The Pythagorean check is relative to c², so it holds at any scale and
-        accepts float32 triangles from the renderer (residual ≲ 4e-7) while
-        still rejecting e.g. the 4.32 triangle with height 25/φ⁴ (7.2e-6).
+        The Pythagorean check is relative to c², so it holds at any scale.
+        The tolerance is definitional, not a float32 allowance: renderer
+        triangles reach ETR through TriangleSplattingAdapter, which derives
+        the hypotenuse from the legs. The 4.32 triangle with height 25/φ⁴
+        (relative residual 7.2e-6) is rejected by a factor of 72,000.
         """
         if self.height <= 0 or self.hypotenuse <= 0:
             raise ValueError(f"Height and hypotenuse must be positive: h={self.height}, c={self.hypotenuse}")

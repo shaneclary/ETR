@@ -105,7 +105,7 @@ class TriangleSplattingAdapter:
             legs = (b, c)
         else:  # Right angle at v0
             legs = (c, a)
-        base, height = min(legs), max(legs)
+        base, height = float(min(legs)), float(max(legs))  # float64: norms of float32 vertices are float32
 
         return RightTriangle(base=base, height=height, hypotenuse=math.hypot(base, height))
 

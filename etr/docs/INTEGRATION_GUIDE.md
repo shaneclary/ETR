@@ -2,6 +2,8 @@
 
 This guide shows how to integrate ETR with Triangle Splatting's training and rendering pipelines.
 
+What `train.py` already supports: `--init_shape thoth` seeds every triangle with Grant's Thoth triangle and `--lambda_thoth` adds the shape regularizer (see the ETR README). The flags and scripts below are suggestions for adding ETR *analysis* to the loop; none of them exist in `train.py` yet.
+
 ## Training Integration
 
 ### Option 1: Add ETR Analysis to Existing Training
@@ -314,11 +316,11 @@ Solutions:
 
 ## Example: Complete Integration
 
-See `etr/examples/integrated_training.py` for a complete example of ETR-integrated training.
+See `etr/examples/integration_demo.py` for the integration overview and `etr/validation/renderer_init_tests.py` for the init-to-metrics path exercised on CPU.
 
 ---
 
 For more information, see:
 - [ETR README](../README.md)
 - [Triangle Splatting Documentation](../../README.md)
-- [Validation Guide](VALIDATION.md)
+- [Validation Report](VALIDATION_REPORT.md)

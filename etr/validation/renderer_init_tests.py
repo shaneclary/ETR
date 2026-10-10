@@ -91,12 +91,13 @@ def test_default_matches_upstream():
 
 
 def thoth_measurements(triangles, centers, radii):
+    """Vertex roles follow the Fibonacci layout: hypotenuse v0-v2, right angle at v1."""
     vertex_distances = (triangles - centers[:, None, :]).norm(dim=-1)
-    hypotenuses = (triangles[:, 0] - triangles[:, 1]).norm(dim=-1)
-    leg_a = triangles[:, 0] - triangles[:, 2]
-    leg_b = triangles[:, 1] - triangles[:, 2]
-    cos_right = (leg_a * leg_b).sum(-1) / (leg_a.norm(dim=-1) * leg_b.norm(dim=-1))
-    return vertex_distances, hypotenuses, leg_a, leg_b, cos_right
+    hypotenuses = (triangles[:, 0] - triangles[:, 2]).norm(dim=-1)
+    leg_height = triangles[:, 0] - triangles[:, 1]
+    leg_base = triangles[:, 2] - triangles[:, 1]
+    cos_right = (leg_height * leg_base).sum(-1) / (leg_height.norm(dim=-1) * leg_base.norm(dim=-1))
+    return vertex_distances, hypotenuses, leg_height, leg_base, cos_right
 
 
 def test_thoth_init_shape():
@@ -105,28 +106,39 @@ def test_thoth_init_shape():
     print("TEST 2: Thoth init shape")
     print("="*70)
 
-    from scene.triangle_model import generate_triangles_in_chunks
+    from scene.triangle_model import fibonacci_directions, right_triangle_directions, thoth_directions, generate_triangles_in_chunks
+    from etr.core.entangled_triangles import RightTriangle
     from etr.core.thoth_geometry import thoth_triangle
 
     thoth = thoth_triangle()
     base_ratio = thoth.base / thoth.hypotenuse
     height_ratio = thoth.height / thoth.hypotenuse
 
+    # Same seed plane as the default: a 45-45-90 triangle reproduces fibonacci_directions(3) exactly,
+    # and the Thoth directions share its hypotenuse axis and its plane
+    isosceles = right_triangle_directions(RightTriangle(base=1.0, height=1.0, hypotenuse=math.sqrt(2.0)))
+    assert torch.equal(isosceles, fibonacci_directions(3)), "45-45-90 layout must equal the Fibonacci directions"
+    directions = thoth_directions(3)
+    fib = fibonacci_directions(3)
+    assert torch.equal(directions[0], fib[0]) and torch.equal(directions[2], fib[2]), "hypotenuse axis must match"
+    assert abs(torch.dot(directions[1], torch.cross(fib[0], fib[1], dim=0)).item()) < 1e-7, "right-angle vertex must lie in the Fibonacci plane"
+    print("✓ Thoth directions share the Fibonacci seed plane; 45-45-90 reproduces fibonacci_directions(3)")
+
     # Near the origin float32 rounding is negligible: the geometry must be exact
     centers, radii = sample_centers(4500, seed=5, center_spread=0.01, min_radius=0.5, radius_spread=1.0)
     x, y, z = centers[:, 0], centers[:, 1], centers[:, 2]
     triangles = generate_triangles_in_chunks(x, y, z, radii, 3, init_shape="thoth")
     assert triangles.shape == (4500, 3, 3)
-    vertex_distances, hypotenuses, leg_a, leg_b, cos_right = thoth_measurements(triangles, centers, radii)
+    vertex_distances, hypotenuses, leg_height, leg_base, cos_right = thoth_measurements(triangles, centers, radii)
 
     assert torch.allclose(vertex_distances, radii.expand(-1, 3), rtol=1e-6, atol=1e-6), "vertices must sit at circumradius r"
     assert torch.allclose(hypotenuses, 2 * radii[:, 0], rtol=1e-6, atol=1e-6), "hypotenuse must be the diameter 2r"
-    assert cos_right.abs().max() < 2e-6, f"right angle at v2 violated, max |cos| = {cos_right.abs().max():.2e}"
-    assert torch.allclose(leg_a.norm(dim=-1) / hypotenuses, torch.full_like(hypotenuses, base_ratio), atol=2e-6)
-    assert torch.allclose(leg_b.norm(dim=-1) / hypotenuses, torch.full_like(hypotenuses, height_ratio), atol=2e-6)
+    assert cos_right.abs().max() < 2e-6, f"right angle at v1 violated, max |cos| = {cos_right.abs().max():.2e}"
+    assert torch.allclose(leg_height.norm(dim=-1) / hypotenuses, torch.full_like(hypotenuses, height_ratio), atol=2e-6)
+    assert torch.allclose(leg_base.norm(dim=-1) / hypotenuses, torch.full_like(hypotenuses, base_ratio), atol=2e-6)
     print(f"✓ Near origin: {triangles.shape[0]} Thoth triangles, max |cos right angle| = {cos_right.abs().max():.1e}")
 
-    normals = torch.cross(leg_a, leg_b, dim=-1)
+    normals = torch.cross(leg_height, leg_base, dim=-1)
     normals = normals / normals.norm(dim=-1, keepdim=True)
     assert normals.std(dim=0).min() > 0.3, "triangles should be randomly rotated"
     print("✓ Orientations are random")
@@ -144,9 +156,7 @@ def test_thoth_init_shape():
 
     torch.manual_seed(5)
     upstream_triangles = generate_triangles_in_chunks(x, y, z, radii, 3)
-    upstream_a = upstream_triangles[:, 0] - upstream_triangles[:, 1]
-    upstream_b = upstream_triangles[:, 2] - upstream_triangles[:, 1]
-    upstream_cos = (upstream_a * upstream_b).sum(-1) / (upstream_a.norm(dim=-1) * upstream_b.norm(dim=-1))
+    _, _, _, _, upstream_cos = thoth_measurements(upstream_triangles, centers, radii)
     assert cos_right.abs().max() <= 2 * upstream_cos.abs().max(), "thoth init should round like the upstream init"
     print(f"✓ Scene scale: max |cos right angle| = {cos_right.abs().max():.1e} "
           f"(upstream 45-45-90 init: {upstream_cos.abs().max():.1e})")

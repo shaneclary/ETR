@@ -238,10 +238,7 @@ When `--use-etr` is enabled, an ETR configuration file is created:
 {
   "enabled": true,
   "init_shape": "thoth",
-  "lambda_thoth": 0.0,
-  "compute_metrics": true,
-  "log_interval": 1000,
-  "output_dir": "output/bicycle/etr_analysis"
+  "lambda_thoth": 0.0
 }
 ```
 
@@ -289,8 +286,8 @@ python render.py -m output/bicycle
 # Compute PSNR, SSIM, LPIPS
 python metrics.py -m output/bicycle
 
-# View ETR analysis
-ls output/bicycle/etr_analysis/
+# ETR settings used for this run
+cat output/bicycle/etr_config.json
 ```
 
 ## Advanced Usage

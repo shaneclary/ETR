@@ -149,10 +149,7 @@ def setup_etr_environment(args):
     etr_config = {
         'enabled': True,
         'init_shape': 'thoth',
-        'lambda_thoth': args.lambda_thoth,
-        'compute_metrics': True,
-        'log_interval': 1000,
-        'output_dir': str(Path(args.output) / 'etr_analysis')
+        'lambda_thoth': args.lambda_thoth
     }
 
     # Save configuration
@@ -167,7 +164,6 @@ def setup_etr_environment(args):
     print(f"✓ ETR configuration saved to {config_file}")
     print(f"  Init shape: thoth (hypotenuse 4.32, base 1/0.432)")
     print(f"  Shape regularizer weight: {args.lambda_thoth}")
-    print(f"  Metrics enabled: True")
 
     return True
 
@@ -287,15 +283,14 @@ For more information on ETR, see: etr/README.md
     print(f"Model saved to: {args.output}")
 
     if args.use_etr:
-        etr_dir = Path(args.output) / 'etr_analysis'
-        print(f"ETR analysis saved to: {etr_dir}")
+        print(f"ETR configuration: {Path(args.output) / 'etr_config.json'}")
 
     print("\nNext steps:")
     print(f"  1. Render test views: python render.py -m {args.output}")
     print(f"  2. Evaluate metrics: python metrics.py -m {args.output}")
 
     if args.use_etr:
-        print(f"  3. Analyze ETR results: ls {etr_dir}")
+        print(f"  3. ETR statistics: TriangleSplattingAdapter.apply_etr_to_triangle_model(model), see etr/README.md")
 
     print("="*70)
 

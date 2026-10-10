@@ -82,6 +82,22 @@ def fibonacci_directions(nb_points, device='cpu'):
     return torch.stack(directions, dim=0)
 
 
+def right_triangle_directions(right_triangle, device='cpu'):
+    """
+    A right triangle inscribed in the unit circle, laid out exactly like the
+    three Fibonacci directions: hypotenuse from (0,0,1) to (0,0,-1) with the
+    right angle at index 1 in the plane of the Fibonacci equator point. For
+    a 45-45-90 triangle this returns fibonacci_directions(3) itself, so the
+    shape changes but the seed plane, and with it the orientation
+    statistics of random_rotation_matrices, does not.
+    Returns a tensor of shape (3, 3).
+    """
+    fib = fibonacci_directions(3, device=device)
+    (x0, y0, _), (x1, y1, _), (x2, y2, _) = right_triangle.unit_circumcircle_vertices()
+    frame = torch.stack([fib[0], fib[1]])  # canonical x -> hypotenuse axis, canonical y -> equator point
+    return torch.tensor([[x1, y1], [x2, y2], [x0, y0]], device=device) @ frame
+
+
 def thoth_directions(nb_points, device='cpu'):
     """
     Grant's Thoth triangle (hypotenuse 4.32, base 1/0.432) inscribed in the
@@ -92,7 +108,7 @@ def thoth_directions(nb_points, device='cpu'):
     if nb_points != 3:
         raise ValueError(f"The Thoth init shape is a triangle, so nb_points must be 3, got {nb_points}")
     from etr.core.thoth_geometry import thoth_triangle
-    return torch.tensor(thoth_triangle().unit_circumcircle_vertices(), device=device)
+    return right_triangle_directions(thoth_triangle(), device=device)
 
 
 def generate_triangles_in_chunks(x, y, z, radii, nb_points=3, chunk_size=2000, init_shape="fibonacci"):
@@ -450,6 +466,9 @@ class TriangleModel:
         if scene_size > 300:
             print("Scene is large, we increase the threshold")
             self.large = True
+
+        if init_shape != "fibonacci":
+            print(f"Init shape: {init_shape} (Thoth right triangle, angles 57.599/32.401 deg, area 0.905 of the default at equal triangle_size)")
 
         dist2 = torch.clamp_min(distCUDA2(torch.from_numpy(np.asarray(total_points)).float().cuda()), 0.0000001)
         
