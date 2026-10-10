@@ -300,7 +300,7 @@ def test_thoth_triangle_pure_python():
     assert round(rt_base * 16) == 37, "Base should round to 2 5/16 = 37/16"
     print("✓ Sixteenths: hyp ≈ 4 5/16, height ≈ 3 10/16, base ≈ 2 5/16")
 
-    # ETR transform (height and hypotenuse roles swap)
+    # ETR transform: uniform scaling by 1/(height × hypotenuse)
     scaling = rt_height * rt_hyp
     lt_height = 1.0 / rt_hyp
     lt_hyp = 1.0 / rt_height

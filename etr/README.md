@@ -35,6 +35,36 @@ Verification:
 - Angles: Identical ✓
 ```
 
+### Example: The Thoth Triangle (4.32 : 1/0.432)
+
+From Grant's #ThothConstant post (Grant calls 432 the Thoth Constant). The triangle is defined by hypotenuse × base = 10.
+
+```
+Right Triangle:  base=1/0.432=2.3148148148, height=3.6474693108, hypotenuse=4.32
+Scaling Factor:  3.6474693108 × 4.32 = 15.7570674226
+Left Triangle:   base=0.1469064486, height=1/4.32=0.2314814815, hypotenuse=0.2741626906
+
+Entanglement: left height = 1/hypotenuse = right base / 10 (same digits) ✓
+```
+
+What holds exactly and what only approximately (checked at 40 digits):
+
+| Equation from the post | Status |
+|---|---|
+| 4.32 × (1/0.432) = 10 | Exact (definition) |
+| (1/φ² + 1)⁴ = 25/φ⁴ = 125 − 75φ | Exact identity |
+| height ≈ (1/φ² + 1)⁴ | Approximate: 3.6474693 vs 3.6474508, 5.06 ppm. Provably unequal, so 4.32, 1/0.432 and 25/φ⁴ cannot all be sides of one right triangle (Pythagorean residual −1.35e-4) |
+| 3.16227766 × 0.316227766 = 1 (Fractal Root) | Exact; hypotenuse √10 is the degenerate member (base = hypotenuse, height 0), so the family needs hypotenuse > √10 |
+| 4 5/16, 3 10/16, 2 5/16 | Nearest-sixteenth roundings of the three sides |
+| 432² = 186,624 ≈ speed of light | Approximate: 186,282.397 mi/s, +0.18%, and only in miles |
+
+```python
+from etr.core.thoth_geometry import thoth_triangle, run_thoth_validation
+
+rt = thoth_triangle()        # hypotenuse 4.32; thoth_triangle(c) for other members
+run_thoth_validation()       # asserts every row above through ETR's classes
+```
+
 ## Directory Structure
 
 ```
@@ -43,6 +73,7 @@ etr/
 │   ├── entangled_triangles.py    # Main theory implementation
 │   ├── torch_triangle_ops.py     # GPU-accelerated operations
 │   ├── logarithmic_spirals.py    # Spiral generation
+│   ├── thoth_geometry.py         # Thoth triangle (4.32 : 1/0.432)
 │   └── triangle_adapter.py       # Triangle Splatting integration
 ├── validation/             # Test suite
 │   └── validation_suite.py

@@ -1,8 +1,9 @@
 """
 Grant's 4.32 triangle (#ThothConstant post) expressed in ETR geometry.
 
-The triangle is defined by hypotenuse × base = 10: hypotenuse 4.32,
-base 1/0.432 = 10/4.32, height √(4.32² − (1/0.432)²) ≈ 3.6474693.
+Grant calls 432 the Thoth Constant. The triangle uses its decimal shifts and
+is defined by hypotenuse × base = 10: hypotenuse 4.32, base 1/0.432 = 10/4.32,
+height √(4.32² − (1/0.432)²) ≈ 3.6474693.
 
 Exact (definitions and identities):
 - hypotenuse × base = 10
@@ -11,7 +12,9 @@ Exact (definitions and identities):
 - √10 × (√10/10) = 1; hypotenuse √10 is the degenerate member (base = √10, height 0)
 
 Approximate (numerical coincidences, checked at 40 digits):
-- height ≈ 25/φ⁴, off by 5.06 ppm; 4.32 rounds the φ-exact hypotenuse 4.3199879
+- height ≈ 25/φ⁴, off by 5.06 ppm and provably unequal (height² is rational,
+  (25/φ⁴)² is not); keeping hypotenuse × base = 10, the hypotenuse that makes
+  the height exactly 25/φ⁴ is 4.3199879, which rounds to 4.32
 - the drawing's 4 5/16, 3 10/16, 2 5/16 are nearest-sixteenth roundings
 - 432² = 186,624 vs the speed of light 186,282.397 mi/s: +0.18%, and only in miles
 """
@@ -24,7 +27,8 @@ from .entangled_triangles import RightTriangle, LeftTriangleGenerator
 PHI = (1 + math.sqrt(5)) / 2
 FRACTAL_ROOT = math.sqrt(10)  # FRACTAL_ROOT × (FRACTAL_ROOT / 10) = 1
 
-THOTH_HYPOTENUSE = 4.32
+THOTH_CONSTANT = 432
+THOTH_HYPOTENUSE = THOTH_CONSTANT / 100
 THOTH_HYPOTENUSE_BASE_PRODUCT = 10.0  # hypotenuse × base
 
 # (1/φ² + 1)⁴ = 25/φ⁴. Approximates the 4.32 triangle's height; not equal to it.
@@ -112,8 +116,8 @@ def run_thoth_validation():
 
     # 432² and the speed of light
     light_miles_per_second = 299792458 / 1609.344
-    light_gap = (432**2 - light_miles_per_second) / light_miles_per_second
-    assert 432**2 == 186624, "432² should be 186,624"
+    light_gap = (THOTH_CONSTANT**2 - light_miles_per_second) / light_miles_per_second
+    assert THOTH_CONSTANT**2 == 186624, "432² should be 186,624"
     assert abs(light_gap - 1.8337908e-3) < 1e-9, f"Gap should be +0.1834%, got {light_gap:.6e}"
     print(f"✓ 432² = 186,624 vs {light_miles_per_second:,.3f} mi/s ({light_gap:+.4%}, approximate)")
 
