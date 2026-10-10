@@ -126,6 +126,10 @@ class LeftTriangleGenerator:
     - LT_Height = 1 / RT_Hypotenuse
     - LT_Hypotenuse = 1 / RT_Height
     - LT_Base = RT_Base / (RT_Height × RT_Hypotenuse)  [NON-RECIPROCAL]
+
+    This is the right triangle scaled uniformly by 1 / (Height × Hypotenuse),
+    and it is an involution: applying it to the left triangle returns the
+    original right triangle.
     """
 
     @staticmethod
@@ -202,86 +206,66 @@ class LeftTriangleGenerator:
         return True
 
 
-class FractalTriangleHierarchy:
+class EntangledTrianglePair:
     """
-    Generate recursive fractal hierarchies of entangled triangles.
+    A right triangle and its entangled left triangle.
 
-    Each level applies the left triangle transformation, creating
-    progressively smaller triangles with preserved angular relationships.
+    Grant's transformation is an involution: the left triangle of the left
+    triangle is the original (3:4:5 → 0.15:0.2:0.25 → 3:4:5), so iterating
+    it gives a period-2 sequence with two distinct triangles, not a
+    descending hierarchy. The scaling factor height × hypotenuse is a length
+    ratio in the triangle's own units: the left triangle is smaller only
+    when it exceeds 1. For 3:4:5 it is 20; for a renderer triangle of
+    circumradius 0.1 it is about 0.03, so there the left triangle is larger.
     """
+
+    period = 2
 
     def __init__(self, base_triangle: RightTriangle, max_depth: int = 10):
         """
-        Initialize fractal hierarchy.
+        Build the pair.
 
         Args:
-            base_triangle: Starting right triangle
-            max_depth: Maximum recursion depth
+            base_triangle: Right triangle (level 0)
+            max_depth: Default length of generate_hierarchy()
         """
         self.base_triangle = base_triangle
         self.max_depth = max_depth
+        self.right = base_triangle
+        self.left = LeftTriangleGenerator.generate_left_triangle(base_triangle)
+        self.scaling_factor = base_triangle.scaling_factor
         self.hierarchy: List[RightTriangle] = []
         self.cumulative_scaling: List[float] = []
 
+    def level(self, k: int) -> RightTriangle:
+        """Triangle after k applications of the transformation."""
+        return self.right if k % 2 == 0 else self.left
+
+    def cumulative_scaling_at(self, k: int) -> float:
+        """Length ratio level 0 / level k: 1 for even k, scaling_factor for odd k."""
+        return 1.0 if k % 2 == 0 else self.scaling_factor
+
     def generate_hierarchy(self, depth: Optional[int] = None) -> List[RightTriangle]:
         """
-        Generate complete fractal hierarchy.
+        Triangles after 0..depth applications of the transformation.
 
         Args:
             depth: Override max_depth if provided
 
         Returns:
-            List of triangles from level 0 (base) to depth
+            List alternating right, left, right, ... (period 2)
         """
         if depth is None:
             depth = self.max_depth
 
-        self.hierarchy = [self.base_triangle]
-        self.cumulative_scaling = [self.base_triangle.scaling_factor]
-
-        current = self.base_triangle
-
-        for level in range(1, depth + 1):
-            # Generate next left triangle
-            next_triangle = LeftTriangleGenerator.generate_left_triangle(current)
-
-            # Compute cumulative scaling
-            cumulative = self.cumulative_scaling[-1] * next_triangle.scaling_factor
-
-            self.hierarchy.append(next_triangle)
-            self.cumulative_scaling.append(cumulative)
-
-            current = next_triangle
-
-            logger.info(
-                f"Level {level}: base={current.base:.10f}, "
-                f"scaling={current.scaling_factor:.6f}, "
-                f"cumulative={cumulative:.2e}"
-            )
+        self.hierarchy = [self.level(k) for k in range(depth + 1)]
+        self.cumulative_scaling = [self.cumulative_scaling_at(k) for k in range(depth + 1)]
 
         return self.hierarchy
 
-    def get_lod_triangle(self, distance: float, screen_threshold: float = 0.01) -> RightTriangle:
-        """
-        Select appropriate triangle level based on distance (LOD).
 
-        Args:
-            distance: Distance from camera
-            screen_threshold: Minimum screen-space size (0-1)
-
-        Returns:
-            Triangle at appropriate detail level
-        """
-        if not self.hierarchy:
-            self.generate_hierarchy()
-
-        for triangle in self.hierarchy:
-            projected_size = triangle.base / distance
-            if projected_size >= screen_threshold:
-                return triangle
-
-        # Return smallest triangle if all are too small
-        return self.hierarchy[-1]
+# Former name: it never produced more than the two triangles of the pair
+FractalTriangleHierarchy = EntangledTrianglePair
 
 
 # Validation and Testing
@@ -351,12 +335,13 @@ if __name__ == "__main__":
     # Run validation
     run_3_4_5_validation()
 
-    # Test fractal hierarchy
-    print("\n\nGENERATING FRACTAL HIERARCHY")
+    # Show the entangled pair (period 2)
+    print("\n\nENTANGLED PAIR, ITERATED")
     print("="*70)
     rt = RightTriangle(base=3, height=4, hypotenuse=5)
-    hierarchy = FractalTriangleHierarchy(rt, max_depth=5)
-    triangles = hierarchy.generate_hierarchy()
+    pair = EntangledTrianglePair(rt, max_depth=5)
+    triangles = pair.generate_hierarchy()
 
     for i, tri in enumerate(triangles):
-        print(f"Level {i}: base={tri.base:.10f}, scaling={tri.scaling_factor:.6f}")
+        print(f"Level {i}: base={tri.base:.10f}, scaling={tri.scaling_factor:.6f}, "
+              f"length ratio to level 0={pair.cumulative_scaling[i]:.2f}")

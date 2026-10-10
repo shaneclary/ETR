@@ -18,7 +18,7 @@ Given a right triangle with dimensions (base, height, hypotenuse), the entangled
 ### Key Properties
 
 1. **Identical Angles**: The left triangle preserves all angular relationships
-2. **Fractal Self-Similarity**: Recursive application creates fractal hierarchies
+2. **Involution**: applying the transformation twice returns the original, so right and left form a period-2 pair
 3. **Logarithmic Spirals**: Natural geometric coherence for spiral generation
 4. **Scaling Law**: Area scales by (scaling_factor)², perimeter by scaling_factor
 
@@ -132,26 +132,20 @@ VALIDATING 3:4:5 CANONICAL EXAMPLE
 3:4:5 VALIDATION PASSED ✓
 ```
 
-### 2. Generate Fractal Hierarchy
+### 2. The Entangled Pair
 
-Create a recursive fractal hierarchy from any right triangle:
+The transformation is an involution, so iterating it alternates between the two triangles of a pair; there is no deeper hierarchy. `FractalTriangleHierarchy` remains as an alias.
 
 ```python
-from etr.core.entangled_triangles import RightTriangle, FractalTriangleHierarchy
+from etr.core.entangled_triangles import RightTriangle, EntangledTrianglePair
 
-# Create base triangle
-rt = RightTriangle(base=3, height=4, hypotenuse=5)
-
-# Generate 10-level hierarchy
-hierarchy = FractalTriangleHierarchy(rt, max_depth=10)
-triangles = hierarchy.generate_hierarchy()
-
-# Access triangles at each level
-for i, triangle in enumerate(triangles):
-    print(f"Level {i}: "
-          f"base={triangle.base:.10f}, "
-          f"scaling={triangle.scaling_factor:.6f}")
+pair = EntangledTrianglePair(RightTriangle(base=3, height=4, hypotenuse=5))
+pair.right, pair.left        # (3, 4, 5) and (0.15, 0.2, 0.25)
+pair.scaling_factor          # 20: length ratio right / left, in the triangle's own units
+pair.generate_hierarchy(4)   # [right, left, right, left, right]; cumulative_scaling = [1, 20, 1, 20, 1]
 ```
+
+The scaling factor is height × hypotenuse in the triangle's units, so the left triangle is smaller only when that product exceeds 1. A renderer triangle of circumradius 0.1 has a product of about 0.03, and its left triangle is 30× larger: the pair carries no level-of-detail meaning at scene scale.
 
 ### 3. Batch Processing with PyTorch
 
@@ -233,25 +227,26 @@ vertices, faces = generator.generate_3d_spiral_mesh(
 
 ## Training with ETR
 
-To train Triangle Splatting models with ETR analysis:
+ETR enters the renderer at initialisation. Triangle Splatting starts every triangle as the three Fibonacci directions on the unit sphere (a 45-45-90 right triangle, hypotenuse as the diameter), scaled by `triangle_size` × nearest-neighbour distance and randomly rotated. With `--init_shape thoth` the seed is Grant's Thoth triangle on the same unit circumcircle (`RightTriangle.unit_circumcircle_vertices()`), so every triangle begins with the 57.6° / 32.4° / 90° proportions.
 
 ```bash
-# Standard training with ETR monitoring
-python train.py -s <scene_path> -m <output_path> --eval
-
-# The adapter will automatically log ETR statistics during training
+python train.py -s <scene_path> -m <output_path> --init_shape thoth
+# equivalently
+python scripts/train_with_etr.py --scene <scene_path> --output <output_path> --use-etr
 ```
+
+Training then moves the vertices freely. Midpoint splitting during densification keeps the shape (four similar copies at half scale); cloning adds in-plane noise and image gradients reshape triangles. To keep pulling shapes back towards the Thoth proportions, set `--lambda_thoth` (default 0): a loss on each triangle's two shorter sides as fractions of its longest, zero exactly on Thoth-similar triangles (`utils.loss_utils.shape_regularizer`). Any non-zero weight trades image fidelity for shape; measure PSNR/SSIM/LPIPS against the default before recommending a value. At equal circumradius the Thoth triangle has 9.5% less area than the 45-45-90 one; `--triangle_size 2.34` matches the default's initial area.
 
 ## Rendering
 
-Render scenes with ETR-transformed triangles:
+`render.py` renders whatever a trained model holds, so a model trained with `--init_shape thoth` renders its Thoth-seeded triangles. ETR statistics come from the adapter, not from `render.py`:
 
-```bash
-# Standard rendering
-python render.py -m <model_path>
-
-# ETR statistics will be computed and logged
+```python
+etr_data = TriangleSplattingAdapter.apply_etr_to_triangle_model(model)
+ETRMetrics.log_statistics(ETRMetrics.compute_statistics(etr_data))
 ```
+
+The adapter accepts a right angle to |cos| ≤ 1e-4 (0.006°, above the float32 rounding of the renderer's own init at scene scale), labels the longer leg as the height (Grant's convention: 3:4:5 has height 4, the Thoth triangle 3.647) and derives the hypotenuse from the legs. A freshly initialised Thoth model reports 100% right triangles with logarithmic base 1.18438.
 
 ## Theory References
 
@@ -282,7 +277,7 @@ For any right triangle satisfying a² + b² = c²:
 - **CPU Operations**: Suitable for individual triangle transformations
 - **GPU Batch Operations**: Recommended for >1000 triangles
 - **Memory Usage**: Minimal overhead per triangle (3 float32 values)
-- **Numerical Stability**: Tested up to 15 levels of fractal recursion
+- **Numerical Stability**: Tested over 15 iterations of the transformation (period 2)
 
 ## Troubleshooting
 

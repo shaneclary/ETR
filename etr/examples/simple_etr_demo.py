@@ -48,7 +48,7 @@ except Exception as e:
     print(f"\n✗ Core theory validation FAILED: {e}")
 
 # Test 2: Fractal Hierarchy
-print("\n[2] Testing Fractal Hierarchy Generation")
+print("\n[2] Testing the Entangled Pair (iterated, period 2)")
 print("-"*70)
 
 try:
@@ -58,17 +58,17 @@ try:
     hierarchy = FractalTriangleHierarchy(rt, max_depth=5)
     triangles = hierarchy.generate_hierarchy()
 
-    print(f"Generated {len(triangles)} levels of fractal hierarchy:\n")
+    print(f"Generated {len(triangles)} levels (right and left alternate):\n")
 
     for i, tri in enumerate(triangles):
         print(f"  Level {i}: base={tri.base:12.8f}, "
               f"scaling={tri.scaling_factor:8.4f}, "
               f"cumulative={hierarchy.cumulative_scaling[i]:10.2e}")
 
-    print("\n✓ Fractal hierarchy generation PASSED")
+    print("\n✓ Entangled pair generation PASSED")
 
 except Exception as e:
-    print(f"\n✗ Fractal hierarchy generation FAILED: {e}")
+    print(f"\n✗ Entangled pair generation FAILED: {e}")
 
 # Test 3: Batch Operations (requires PyTorch)
 print("\n[3] Testing Batch Operations")

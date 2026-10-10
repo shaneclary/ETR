@@ -9,11 +9,11 @@ Usage:
     # Basic training
     python scripts/train_with_etr.py --scene data/mipnerf360/bicycle --output output/bicycle
 
-    # With ETR analysis (generates fractal hierarchies and metrics)
+    # With ETR: every triangle starts as Grant's Thoth triangle (hypotenuse 4.32, base 1/0.432)
     python scripts/train_with_etr.py --scene data/mipnerf360/bicycle --output output/bicycle --use-etr
 
-    # With specific ETR levels
-    python scripts/train_with_etr.py --scene data/mipnerf360/bicycle --output output/bicycle --use-etr --etr-levels 7
+    # Also keep pulling shapes towards the Thoth triangle during training (trades image fidelity for shape)
+    python scripts/train_with_etr.py --scene data/mipnerf360/bicycle --output output/bicycle --use-etr --lambda-thoth 0.01
 """
 
 import argparse
@@ -116,9 +116,11 @@ def build_train_command(args):
     if args.outdoor:
         cmd.append('--outdoor')
 
-    # ETR-specific arguments would go here
-    # Note: The main train.py doesn't have ETR flags yet
-    # This is where you'd add them after modifying train.py
+    # ETR arguments: seed the renderer with Thoth triangles and, optionally, keep pulling shapes towards them
+    if args.use_etr:
+        cmd.extend(['--init_shape', 'thoth'])
+        if args.lambda_thoth > 0:
+            cmd.extend(['--lambda_thoth', str(args.lambda_thoth)])
 
     return cmd
 
@@ -146,10 +148,11 @@ def setup_etr_environment(args):
     # Create ETR configuration
     etr_config = {
         'enabled': True,
-        'fractal_levels': args.etr_levels,
+        'init_shape': 'thoth',
+        'lambda_thoth': args.lambda_thoth,
         'compute_metrics': True,
         'log_interval': 1000,
-        'output_dir': Path(args.output) / 'etr_analysis'
+        'output_dir': str(Path(args.output) / 'etr_analysis')
     }
 
     # Save configuration
@@ -162,7 +165,8 @@ def setup_etr_environment(args):
         json.dump(etr_config, f, indent=2)
 
     print(f"✓ ETR configuration saved to {config_file}")
-    print(f"  Fractal levels: {args.etr_levels}")
+    print(f"  Init shape: thoth (hypotenuse 4.32, base 1/0.432)")
+    print(f"  Shape regularizer weight: {args.lambda_thoth}")
     print(f"  Metrics enabled: True")
 
     return True
@@ -176,12 +180,12 @@ Examples:
   # Train on bicycle scene
   python scripts/train_with_etr.py --scene data/mipnerf360/bicycle --output output/bicycle
 
-  # Train with ETR analysis
+  # Train with Thoth triangle initialisation
   python scripts/train_with_etr.py --scene data/mipnerf360/bicycle --output output/bicycle --use-etr
 
-  # Train with custom parameters
+  # Train with custom parameters and the Thoth shape regularizer
   python scripts/train_with_etr.py --scene data/mipnerf360/garden --output output/garden \\
-      --iterations 40000 --outdoor --use-etr --etr-levels 10
+      --iterations 40000 --outdoor --use-etr --lambda-thoth 0.01
 
 For more information on ETR, see: etr/README.md
         """
@@ -207,9 +211,9 @@ For more information on ETR, see: etr/README.md
 
     # ETR parameters
     parser.add_argument('--use-etr', action='store_true',
-                       help='Enable ETR analysis during training')
-    parser.add_argument('--etr-levels', type=int, default=7,
-                       help='Number of fractal hierarchy levels for ETR (default: 7)')
+                       help='Initialise every triangle as a Thoth triangle (train.py --init_shape thoth)')
+    parser.add_argument('--lambda-thoth', type=float, default=0.0,
+                       help='Weight of the loss pulling triangle shapes towards the Thoth triangle during training (default: 0, shapes stay free)')
 
     # Validation
     parser.add_argument('--skip-checks', action='store_true',

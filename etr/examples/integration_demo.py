@@ -174,7 +174,7 @@ print("""
 
 2. TRAINING INTEGRATION (train.py - optional)
    ├─ Convert triangles to ETR format via TriangleSplattingAdapter
-   ├─ Generate fractal hierarchy for multi-scale rendering
+   ├─ Seed every triangle with the Thoth shape (--init_shape thoth)
    └─ Compute ETR metrics for analysis
 
 3. ETR TRANSFORMATION (etr/core/)
@@ -184,7 +184,7 @@ print("""
    │  • lt_height = 1 / rt_hypotenuse
    │  • lt_hypotenuse = 1 / rt_height
    │  • lt_base = rt_base / scaling_factor
-   └─ Build fractal hierarchy (recursive transformation)
+   └─ Pair right and left triangles (the transformation is an involution)
 
 4. GPU BATCH OPERATIONS (etr/core/torch_triangle_ops.py)
    ├─ Process thousands of triangles in parallel
@@ -213,7 +213,7 @@ test_results = {
         "tests": [
             "3:4:5 canonical triangle",
             "8 Pythagorean triples",
-            "11-level fractal hierarchy",
+            "Entangled pair iterated 10 times (period 2)",
             "15-level numerical stability",
             "Edge cases (small/large triangles)"
         ]
@@ -235,7 +235,7 @@ test_results = {
         "status": "⚠ Requires full environment",
         "tests": [
             "GPU batch operations",
-            "Fractal hierarchy generation",
+            "Entangled pair generation",
             "Numerical stability at scale",
             "Triangle Splatting integration",
             "Rendering pipeline"

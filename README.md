@@ -30,7 +30,8 @@ All trained models and rendered test views for MipNeRF360 are available at the [
 This repository includes an implementation of **ETR (Entangled Triangle Rendering)**, based on Robert Edward Grant's Entangled Left Triangle theory. ETR provides:
 
 - **Mathematical framework** for analyzing right triangles in the scene
-- **Fractal hierarchy generation** for level-of-detail rendering
+- **Entangled triangle pairs** (right ↔ left; the transformation is an involution, period 2)
+- **Thoth triangle initialisation** for the renderer (`--init_shape thoth`) and an opt-in shape regularizer (`--lambda_thoth`)
 - **Batch GPU operations** for efficient triangle transformation
 - **Integration tools** for Triangle Splatting models
 

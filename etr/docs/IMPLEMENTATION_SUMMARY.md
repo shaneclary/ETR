@@ -27,10 +27,9 @@ Successfully implemented **ETR (Entangled Triangle Rendering)** based on Robert 
   - `verify_angle_preservation()`: Validates angular identity
   - `verify_scaling_relationship()`: Validates perimeter and area scaling
 
-- `FractalTriangleHierarchy`: Recursive fractal generation
-  - Multi-level hierarchy generation
-  - LOD (Level of Detail) selection
-  - Cumulative scaling tracking
+- `EntangledTrianglePair` (alias `FractalTriangleHierarchy`): right ↔ left pair
+  - The transformation is an involution, so iterating it has period 2
+  - Length ratio to level 0 per iteration (1, scaling factor, 1, ...)
 
 **Validation**:
 - `run_3_4_5_validation()`: Canonical example validation
@@ -114,7 +113,7 @@ Successfully implemented **ETR (Entangled Triangle Rendering)** based on Robert 
 3. Batch processing (10,000 triangles)
 4. Angle preservation (5 Pythagorean triples)
 5. Scaling relationships
-6. Fractal hierarchy (10 levels)
+6. Entangled pair iterated 10 times (period 2)
 7. Numerical stability (15 levels)
 8. Edge cases (small/large triangles, error handling)
 
@@ -126,7 +125,7 @@ Successfully implemented **ETR (Entangled Triangle Rendering)** based on Robert 
 
 **Demonstrations**:
 - Core theory validation
-- Fractal hierarchy generation
+- Entangled pair iteration
 - Batch operations
 - Multiple Pythagorean triples
 - Spiral generation
@@ -287,10 +286,10 @@ print(f'Found {etr_data[\"n_valid\"]} right triangles')
 - Mean scaling factor computed
 - Pythagorean theorem verified for all
 
-**Fractal Hierarchy**:
-- 11 levels generated (0-10)
-- Each level validates correctly
-- Cumulative scaling tracked
+**Entangled Pair**:
+- Iterated 10 times: alternates right (3, 4, 5) and left (0.15, 0.2, 0.25)
+- Each iteration validates correctly
+- Length ratio to level 0 alternates 1, 20, 1, ...
 
 ---
 
@@ -349,9 +348,9 @@ if iteration % 1000 == 0:
    - CUDA kernel for ETR transformation
    - Direct integration with diff-triangle-rasterization
 
-2. **LOD System**
-   - Automatic detail level selection
-   - Distance-based triangle hierarchy switching
+2. **Thoth Shape Evaluation**
+   - PSNR/SSIM/LPIPS of `--init_shape thoth` and `--lambda_thoth` against the default on MipNeRF360
+   - Fraction of triangles still right / Thoth-shaped after training
 
 3. **Interactive Visualization**
    - Web-based comparison viewer
@@ -370,7 +369,7 @@ if iteration % 1000 == 0:
 
 **High Priority**:
 - CUDA kernel integration
-- LOD system implementation
+- Thoth shape evaluation
 
 **Medium Priority**:
 - Interactive visualization

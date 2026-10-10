@@ -169,6 +169,14 @@ def test_fractal_hierarchy():
         b, h, c = triangles[-1]
         print(f"  Level {len(triangles)-1:2d}: base={b:15.10e}, scaling={scaling_factors[-1]:10.4e}")
 
+    # The transformation is an involution: level 2 is level 0 again, so the
+    # sequence has period 2 and only two distinct triangles
+    for level in range(2, len(triangles)):
+        for side, earlier in zip(triangles[level], triangles[level - 2]):
+            assert abs(side - earlier) < 1e-12, f"Level {level} should equal level {level - 2}"
+    assert len({tuple(round(s, 12) for s in tri) for tri in triangles}) == 2, "Only two distinct triangles"
+    print(f"✓ Period 2: levels alternate (3, 4, 5) and (0.15, 0.2, 0.25); two distinct triangles")
+
     print(f"\n✅ Fractal Hierarchy ({len(triangles)} levels) PASSED")
     return True
 

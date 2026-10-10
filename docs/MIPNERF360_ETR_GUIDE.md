@@ -188,19 +188,14 @@ python train.py -s data/mipnerf360/bicycle -m output/bicycle
 
 ### Training with ETR Analysis
 
-The ETR system analyzes triangles during training and generates:
-- Fractal hierarchies for multi-scale rendering
-- Triangle transformation statistics
-- Scaling factor analysis
-- Numerical stability metrics
+With `--use-etr`, every triangle is initialised as Grant's Thoth triangle (hypotenuse 4.32, base 1/0.432, angles 57.6° / 32.4° / 90°) instead of the default 45-45-90 triangle, at the same circumradius. Training then moves vertices freely; `--lambda-thoth` adds a loss that keeps pulling shapes towards the Thoth proportions.
 
 ```bash
 # Train with ETR
 python scripts/train_with_etr.py \
     --scene data/mipnerf360/bicycle \
     --output output/bicycle_etr \
-    --use-etr \
-    --etr-levels 7
+    --use-etr
 ```
 
 ### Training Parameters
@@ -214,8 +209,8 @@ python scripts/train_with_etr.py \
     --iterations 30000 \           # Training iterations
     --resolution -1 \               # -1 for original resolution
     --outdoor \                     # For outdoor scenes
-    --use-etr \                     # Enable ETR
-    --etr-levels 7                  # ETR fractal levels
+    --use-etr \                     # Thoth triangle initialisation (train.py --init_shape thoth)
+    --lambda-thoth 0.01             # Optional shape regularizer weight (default 0)
 ```
 
 **Scene-Specific Recommendations:**
@@ -242,7 +237,8 @@ When `--use-etr` is enabled, an ETR configuration file is created:
 ```json
 {
   "enabled": true,
-  "fractal_levels": 7,
+  "init_shape": "thoth",
+  "lambda_thoth": 0.0,
   "compute_metrics": true,
   "log_interval": 1000,
   "output_dir": "output/bicycle/etr_analysis"
@@ -263,20 +259,16 @@ output/bicycle/
 ├── cfg_args                     # Training configuration
 ├── cameras.json                 # Camera parameters
 ├── input.ply                    # Input point cloud
-└── etr_analysis/               # ETR results (if enabled)
-    ├── fractal_hierarchies/    # Triangle hierarchies
-    ├── metrics/                # ETR metrics logs
-    └── visualizations/         # Charts and plots
+└── etr_config.json              # ETR settings used (if --use-etr)
 ```
 
 ### ETR Analysis Results
 
 When training with ETR, you'll get:
 
-1. **Fractal Hierarchies**
-   - Multi-level triangle transformations
-   - Right triangle → Left triangle pairs
-   - Scaling factor progressions
+1. **Thoth-seeded triangles**
+   - Every initial triangle has the Thoth proportions; midpoint splits keep them, image gradients reshape them
+   - Right triangle → left triangle pairs via `TriangleSplattingAdapter.apply_etr_to_triangle_model`
 
 2. **Triangle Statistics**
    - Distribution of triangle sizes
@@ -325,25 +317,24 @@ for scene in $SCENES; do
 done
 ```
 
-### Custom ETR Levels
+### Shape Regularizer Weight
 
-Adjust fractal hierarchy depth based on scene complexity:
+`--lambda-thoth` keeps pulling triangle shapes towards the Thoth proportions during training. It trades image fidelity for shape, so compare PSNR against `--lambda-thoth 0` before settling on a value:
 
 ```bash
-# Simple scene - fewer levels
+# Initialisation only (shapes free during training)
 python scripts/train_with_etr.py \
     --scene data/mipnerf360/bonsai \
     --output output/bonsai \
-    --use-etr \
-    --etr-levels 5
+    --use-etr
 
-# Complex scene - more levels
+# Initialisation plus a weak pull back towards the Thoth shape
 python scripts/train_with_etr.py \
     --scene data/mipnerf360/garden \
     --output output/garden \
     --outdoor \
     --use-etr \
-    --etr-levels 10
+    --lambda-thoth 0.01
 ```
 
 ### Resume Training
@@ -409,22 +400,17 @@ Analyze a trained model with ETR:
 
 ```python
 # analyze_with_etr.py
-import torch
+from scene.triangle_model import TriangleModel
 from etr.core.triangle_adapter import TriangleSplattingAdapter
-from etr.core.entangled_triangles import FractalTriangleHierarchy
+from etr.utils.etr_metrics import ETRMetrics
 
 # Load trained model
-checkpoint = torch.load('output/bicycle/chkpnt30000.pth')
+model = TriangleModel(sh_degree=3)
+model.load('output/bicycle/point_cloud/iteration_30000')
 
-# Extract triangles
-adapter = TriangleSplattingAdapter()
-triangles = adapter.extract_right_triangles(checkpoint['xyz'])
-
-# Generate fractal hierarchies
-for triangle in triangles[:100]:  # Sample 100 triangles
-    hierarchy = FractalTriangleHierarchy(triangle, max_levels=7)
-    levels = hierarchy.generate()
-    # Analyze levels...
+# Right triangles, their entangled left triangles and ETR statistics
+etr_data = TriangleSplattingAdapter.apply_etr_to_triangle_model(model)
+ETRMetrics.log_statistics(ETRMetrics.compute_statistics(etr_data))
 ```
 
 ## Troubleshooting

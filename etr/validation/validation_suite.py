@@ -17,6 +17,7 @@ import logging
 from etr.core.entangled_triangles import (
     RightTriangle,
     LeftTriangleGenerator,
+    EntangledTrianglePair,
     FractalTriangleHierarchy,
     run_3_4_5_validation
 )
@@ -280,9 +281,21 @@ class ValidationSuite:
             assert abs(curr.base - expected_lt.base) < 1e-10
             assert abs(curr.height - expected_lt.height) < 1e-10
 
-        print(f"✓ Fractal hierarchy of depth 10 validated")
-        print(f"  Level 0 scaling: {triangles[0].scaling_factor:.2f}")
-        print(f"  Level 10 scaling: {triangles[10].scaling_factor:.2e}")
+        # Involution: the sequence alternates between the two members of the pair
+        assert hierarchy.period == 2
+        assert all(triangles[i] is hierarchy.right for i in range(0, 11, 2))
+        assert all(triangles[i] is hierarchy.left for i in range(1, 11, 2))
+        assert (hierarchy.left.base, hierarchy.left.height, hierarchy.left.hypotenuse) == (0.15, 0.2, 0.25)
+        assert hierarchy.cumulative_scaling == [1.0, 20.0] * 5 + [1.0], hierarchy.cumulative_scaling
+        assert not hasattr(hierarchy, "get_lod_triangle"), "no level of detail exists in a period-2 pair"
+
+        # The left triangle is smaller only when height × hypotenuse > 1: at the
+        # renderer's scale it is larger (circumradius 0.1 Thoth: 0.2 × 0.169 = 0.034)
+        small = RightTriangle(base=0.3, height=0.4, hypotenuse=0.5)
+        assert EntangledTrianglePair(small).cumulative_scaling_at(1) == 0.2
+        assert EntangledTrianglePair(small).left.hypotenuse == 2.5
+
+        print(f"✓ Entangled pair validated: period 2, right (3, 4, 5) ↔ left (0.15, 0.2, 0.25), scaling 20")
 
     def test_numerical_stability(self):
         """Test numerical stability over deep recursion."""
