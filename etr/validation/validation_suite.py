@@ -20,7 +20,7 @@ from etr.core.entangled_triangles import (
     FractalTriangleHierarchy,
     run_3_4_5_validation
 )
-from etr.core.thoth_geometry import thoth_triangle, run_thoth_validation
+from etr.core.thoth_geometry import run_thoth_validation
 
 # Try to import optional dependencies
 try:
@@ -253,16 +253,6 @@ class ValidationSuite:
     def test_thoth_triangle(self):
         """Test Grant's 4.32 : 1/0.432 triangle through the ETR classes."""
         run_thoth_validation()
-
-        # Hypotenuses at or below the Fractal Root √10 give no triangle (height ≤ 0)
-        for hypotenuse in (math.sqrt(10), 3.0):
-            try:
-                thoth_triangle(hypotenuse)
-                assert False, f"hypotenuse={hypotenuse} should have raised ValueError"
-            except ValueError:
-                pass  # Expected
-
-        print("✓ Thoth triangle validated")
 
 
 if __name__ == "__main__":

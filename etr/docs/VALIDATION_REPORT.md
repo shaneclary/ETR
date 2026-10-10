@@ -358,7 +358,7 @@ Visual Metrics:
 
 **Test Environment**: Python 3.11 (stdlib only, no external dependencies)
 **Test Suite**: `etr/validation/standalone_tests.py`
-**Runtime**: <1 second for all 5 test categories
+**Runtime**: <1 second for all 6 test categories
 **Test Coverage**: Core mathematical transformations, edge cases, numerical stability
 
 ---
@@ -375,7 +375,8 @@ python3 etr/validation/standalone_tests.py
 # ✅ Fractal Hierarchy: PASSED
 # ✅ Numerical Stability: PASSED
 # ✅ Edge Cases: PASSED
-# Total: 5 passed, 0 failed
+# ✅ Thoth Triangle: PASSED
+# Total: 6 passed, 0 failed
 ```
 
 **All tests can be run immediately without installing any dependencies!**

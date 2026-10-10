@@ -208,8 +208,8 @@ etr/
 # Implemented in LeftTriangleGenerator.generate_left_triangle()
 scaling_factor = rt.height * rt.hypotenuse
 
-lt_height = 1.0 / rt.height
-lt_hypotenuse = 1.0 / rt.hypotenuse
+lt_height = 1.0 / rt.hypotenuse
+lt_hypotenuse = 1.0 / rt.height
 lt_base = rt.base / scaling_factor  # Non-reciprocal!
 ```
 

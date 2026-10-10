@@ -314,12 +314,13 @@ def test_thoth_triangle_pure_python():
     assert abs(lt_height - rt_base / 10) < 1e-15, f"LT height should be base/10, got {lt_height}"
     print(f"✓ LT height = 1/4.32 = {lt_height:.10f} = RT base / 10")
 
-    # Fractal Root: √10 × (√10/10) = 1. hyp = √10 is the degenerate member of
+    # Fractal Root: √10 × (√10/10) = 1 (the post's 3.16227766 × 0.316227766 are
+    # truncations of these, product 1 − 1.06e-10). hyp = √10 is the degenerate member of
     # the hyp × base = 10 family (base = hyp, height = 0)
     fractal_root = math.sqrt(10)
     assert abs(fractal_root * (fractal_root / 10) - 1) < 1e-15, "√10 × √10/10 should be 1"
     assert abs(fractal_root - 10 / fractal_root) < 1e-15, "At hyp = √10 the base equals the hypotenuse"
-    print(f"✓ Fractal Root: {fractal_root:.8f} × {fractal_root / 10:.9f} = 1 (degenerate member)")
+    print(f"✓ Fractal Root: √10 × √10/10 = 1; hypotenuse √10 = {fractal_root:.8f} is the degenerate member")
 
     # 432² vs the speed of light in miles per second (unit-dependent, approximate)
     assert 432**2 == 186624, "432² should be 186,624"

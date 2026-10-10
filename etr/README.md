@@ -54,7 +54,7 @@ What holds exactly and what only approximately (checked at 40 digits):
 | 4.32 × (1/0.432) = 10 | Exact (definition) |
 | (1/φ² + 1)⁴ = 25/φ⁴ = 125 − 75φ | Exact identity |
 | height ≈ (1/φ² + 1)⁴ | Approximate: 3.6474693 vs 3.6474508, 5.06 ppm. Provably unequal, so 4.32, 1/0.432 and 25/φ⁴ cannot all be sides of one right triangle (Pythagorean residual −1.35e-4) |
-| 3.16227766 × 0.316227766 = 1 (Fractal Root) | Exact; hypotenuse √10 is the degenerate member (base = hypotenuse, height 0), so the family needs hypotenuse > √10 |
+| √10 × (√10/10) = 1 (Fractal Root; the post writes 3.16227766 × 0.316227766) | Exact for √10 (the post's truncated decimals multiply to 1 − 1.06e-10); hypotenuse √10 is the degenerate member (base = hypotenuse, height 0), so the family needs hypotenuse > √10 |
 | 4 5/16, 3 10/16, 2 5/16 | Nearest-sixteenth roundings of the three sides |
 | 432² = 186,624 ≈ speed of light | Approximate: 186,282.397 mi/s, +0.18%, and only in miles |
 

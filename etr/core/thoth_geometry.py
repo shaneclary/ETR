@@ -88,16 +88,19 @@ def run_thoth_validation():
 
     # Golden ratio: exact identity, approximate match
     assert abs(PHI_HEIGHT - 25 / PHI**4) < 1e-12, "(1/φ² + 1)⁴ should equal 25/φ⁴"
+    assert abs(PHI_HEIGHT - (125 - 75 * PHI)) < 1e-12, "(1/φ² + 1)⁴ should equal 125 − 75φ"
     relative_gap = (rt.height - PHI_HEIGHT) / PHI_HEIGHT
     assert abs(relative_gap - 5.062995e-6) < 1e-11, f"φ gap should be 5.063e-6, got {relative_gap:.6e}"
-    print(f"✓ (1/φ² + 1)⁴ = 25/φ⁴ = {PHI_HEIGHT:.10f}, height differs by {relative_gap:.3e} (approximate)")
+    print(f"✓ (1/φ² + 1)⁴ = 25/φ⁴ = 125 − 75φ = {PHI_HEIGHT:.10f}, height differs by {relative_gap:.3e} (approximate)")
 
+    phi_residual = rt.base**2 + PHI_HEIGHT**2 - rt.hypotenuse**2
+    assert abs(phi_residual + 1.3471548e-4) < 1e-10, f"Residual should be −1.347e-4, got {phi_residual:.6e}"
     try:
         RightTriangle(base=rt.base, height=PHI_HEIGHT, hypotenuse=rt.hypotenuse)
         assert False, "4.32, 1/0.432 and 25/φ⁴ should not form a right triangle"
     except ValueError:
-        pass  # Expected: Pythagorean residual is −1.35e-4
-    print("✓ Forcing height = 25/φ⁴ violates Pythagoras (residual −1.35e-4)")
+        pass  # Expected
+    print(f"✓ Forcing height = 25/φ⁴ violates Pythagoras (residual {phi_residual:.3e})")
 
     phi_hypotenuse = math.sqrt((PHI_HEIGHT**2 + math.sqrt(PHI_HEIGHT**4 + 400)) / 2)
     phi_rt = thoth_triangle(phi_hypotenuse)
@@ -110,9 +113,16 @@ def run_thoth_validation():
         "Sides should round to 4 5/16, 3 10/16, 2 5/16"
     print("✓ Sixteenths: hypotenuse ≈ 4 5/16, height ≈ 3 10/16, base ≈ 2 5/16")
 
-    # Fractal Root
+    # Fractal Root: the post's 3.16227766 × 0.316227766 are truncations of √10 and √10/10
     assert abs(FRACTAL_ROOT * (FRACTAL_ROOT / 10) - 1) < 1e-15, "√10 × √10/10 should be 1"
-    print(f"✓ Fractal Root: {FRACTAL_ROOT:.8f} × {FRACTAL_ROOT / 10:.9f} = 1 (degenerate hypotenuse)")
+    try:
+        thoth_triangle(FRACTAL_ROOT)
+        assert False, "Hypotenuse √10 (degenerate, height 0) should raise ValueError"
+    except ValueError:
+        pass  # Expected
+    nearest_valid = thoth_triangle(math.nextafter(FRACTAL_ROOT, THOTH_HYPOTENUSE))
+    assert nearest_valid.height > 0, "Any hypotenuse above √10 should give a triangle"
+    print(f"✓ Fractal Root: √10 × √10/10 = 1; hypotenuse √10 = {FRACTAL_ROOT:.8f} is the degenerate bound")
 
     # 432² and the speed of light
     light_miles_per_second = 299792458 / 1609.344
