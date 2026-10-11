@@ -61,9 +61,11 @@ class ValidationSuite:
             ("Edge Cases", self.test_edge_cases),
             ("Thoth Triangle", self.test_thoth_triangle),
             ("Altitude Subdivision", self.test_altitude_subdivision),
+            ("Foveated LOD Cut", self.test_foveated_lod_cut),
         ]
 
         if TORCH_AVAILABLE:
+            tests.append(("Stereo Eye Cameras", self.test_stereo_eye_cameras))
             tests.append(("Batch Processing", self.test_batch_processing))
             tests.append(("Thoth Shape Regularizer", self.test_thoth_shape_regularizer))
             tests.append(("Adapter on Renderer Triangles", self.test_adapter_on_renderer_triangles))
@@ -208,6 +210,75 @@ class ValidationSuite:
         print(f"✓ Altitude subdivision: Thoth children scaled by {thoth.base / thoth.hypotenuse:.5f} and "
               f"{thoth.height / thoth.hypotenuse:.5f}, 6-level tree of {len(levels[-1])} similar triangles tiles the root, "
               f"cut of {len(cut)} triangles")
+
+    def test_foveated_lod_cut(self):
+        """Test the gaze-driven cut of the altitude tree: exact coverage, finer in the fovea."""
+        import numpy as np
+        from etr.core.altitude_subdivision import triangle_areas
+        from etr.vr.lod import foveated_cut, angular_sizes, eccentricities, foveated_thresholds
+
+        # A wall of Thoth triangles 5 units ahead of the eye, spanning ±40° horizontally
+        rng = np.random.default_rng(0)
+        thoth = np.array(thoth_triangle().unit_circumcircle_vertices()) * 0.3
+        offsets = np.stack([np.linspace(-4.2, 4.2, 25), np.zeros(25), np.full(25, 5.0)], axis=1)
+        wall = thoth[None] + offsets[:, None, :]
+        eye, gaze = np.zeros(3), np.array([0.0, 0.0, 1.0])
+
+        pieces, parent, depth = foveated_cut(wall, eye, gaze, fovea_threshold=math.radians(0.25),
+                                             periphery_threshold=math.radians(2.0), max_depth=10)
+
+        # Exact coverage per input triangle, whatever the cut
+        assert pieces.shape[1:] == (3, 3) and len(pieces) > len(wall)
+        for index in range(len(wall)):
+            covered = triangle_areas(pieces[parent == index]).sum()
+            assert abs(covered - triangle_areas(wall[index:index + 1])[0]) < 1e-12, f"coverage of triangle {index} changed"
+
+        # Every piece is below its threshold or at max depth
+        below = angular_sizes(pieces, eye) <= foveated_thresholds(eccentricities(pieces, eye, gaze),
+                                                                 math.radians(0.25), math.radians(2.0))
+        assert (below | (depth == 10)).all(), "pieces above threshold before max depth"
+
+        # Foveation: the gazed-at triangle is split deeper than the peripheral ones
+        central, peripheral = depth[parent == 12].max(), depth[parent == 0].max()
+        assert central > peripheral, f"fovea depth {central} should exceed periphery depth {peripheral}"
+        ecc = eccentricities(wall, eye, gaze)
+        assert ecc[12] < ecc[6] < ecc[0], "eccentricity should grow away from the gaze"
+
+        # Monotonic: a looser threshold never produces more pieces
+        looser, _, _ = foveated_cut(wall, eye, gaze, math.radians(0.5), math.radians(4.0), max_depth=10)
+        assert len(looser) < len(pieces)
+
+        print(f"✓ Foveated cut: {len(wall)} triangles → {len(pieces)} pieces, fovea depth {central}, "
+              f"periphery depth {peripheral}, coverage exact")
+
+    def test_stereo_eye_cameras(self):
+        """Test eye poses, view/projection matrices and disparity against the renderer's conventions."""
+        import numpy as np
+        from etr.vr.stereo import eye_poses, eye_view_matrices, look_at_rotation, disparity_pixels
+
+        rotation = look_at_rotation(forward=(0.0, 0.0, 1.0))
+        assert np.allclose(rotation, np.eye(3)), "looking down +z with y down is the identity in COLMAP convention"
+        head = np.array([0.3, -0.1, 2.0])
+        ipd = 0.064
+        (_, t_left), (_, t_right) = eye_poses(rotation, head, ipd)
+        centre_left, centre_right = -rotation @ t_left, -rotation @ t_right
+        assert np.allclose(centre_right - centre_left, [ipd, 0, 0]), "eyes should sit ipd apart along the right axis"
+        assert np.allclose((centre_left + centre_right) / 2, head), "head should be midway between the eyes"
+
+        # A point 5 units ahead: left eye sees it right of centre, right eye left of centre, by ipd·f/z pixels
+        width, fov = 1000, math.radians(90)
+        eyes = eye_view_matrices(rotation, head, fov, fov, ipd)
+        point = torch.tensor([head[0], head[1], head[2] + 5.0, 1.0], dtype=torch.float32)
+        ndc_x = []
+        for eye in eyes:
+            clip = point @ eye['full_proj_transform']
+            ndc_x.append((clip[0] / clip[3]).item())
+        assert ndc_x[0] > 0 > ndc_x[1], f"disparity sign wrong: {ndc_x}"
+        measured = (ndc_x[0] - ndc_x[1]) * width / 2
+        assert abs(measured - disparity_pixels(5.0, fov, width, ipd)) < 1e-3, f"disparity {measured:.4f} px"
+        assert torch.allclose(eyes[1]['camera_center'] - eyes[0]['camera_center'], torch.tensor([ipd, 0.0, 0.0]), atol=1e-6)
+
+        print(f"✓ Stereo: eyes {ipd} m apart, point at 5 m has {measured:.2f} px disparity at {width} px / 90°")
 
     def test_thoth_shape_regularizer(self):
         """Test the training-time pull towards the Thoth shape (utils.loss_utils.shape_regularizer)."""
