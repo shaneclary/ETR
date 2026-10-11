@@ -377,6 +377,39 @@ def test_training_loss_wiring():
     return True
 
 
+def test_altitude_subdivision_pure_python():
+    """The altitude from the right angle splits a right triangle into two scaled copies of itself."""
+    print("\n" + "="*70)
+    print("TEST 8: Altitude Subdivision (Pure Python)")
+    print("="*70)
+
+    for name, (base, height) in (("3:4:5", (3.0, 4.0)), ("Thoth", (1 / 0.432, math.sqrt(4.32**2 - (1 / 0.432)**2)))):
+        hyp = math.hypot(base, height)
+        small, large = base / hyp, height / hyp
+
+        # Geometric-mean theorem: the foot divides the hypotenuse into base²/c and height²/c,
+        # the altitude is base·height/c, and altitude² = product of the two pieces
+        piece_a, piece_b, altitude = base**2 / hyp, height**2 / hyp, base * height / hyp
+        assert abs(piece_a + piece_b - hyp) < 1e-12, f"{name}: pieces should add up to the hypotenuse"
+        assert abs(altitude**2 - piece_a * piece_b) < 1e-12, f"{name}: altitude² = product of the pieces"
+
+        # Children: same angles, hypotenuses = the parent's base and height, areas add up (Pythagoras)
+        for scale, child_hyp in ((small, base), (large, height)):
+            assert abs(hyp * scale - child_hyp) < 1e-12, f"{name}: child hypotenuse should be a parent leg"
+            assert abs(math.atan2(height * scale, base * scale) - math.atan2(height, base)) < 1e-12
+        assert abs(small**2 + large**2 - 1) < 1e-15, f"{name}: (b/c)² + (h/c)² should be 1"
+        print(f"✓ {name}: children scaled by {small:.6f} and {large:.6f}, areas {small**2:.4f} + {large**2:.4f} = 1")
+
+        # Spine: the larger child repeated gives (h/c)^n = L^-n, Grant's spiral ratio
+        log_base = hyp / height
+        for n in range(1, 6):
+            assert abs(large**n - log_base**(-n)) < 1e-12, f"{name}: spine scale should be L^-n"
+        print(f"✓ {name}: spine scales (h/c)^n = L^-n with L = {log_base:.6f}")
+
+    print("\n✅ Altitude Subdivision Test PASSED")
+    return True
+
+
 def run_all_tests():
     """Run all standalone tests."""
     print("="*70)
@@ -392,6 +425,7 @@ def run_all_tests():
         ("Edge Cases", test_edge_cases),
         ("Thoth Triangle", test_thoth_triangle_pure_python),
         ("Training Loss Wiring", test_training_loss_wiring),
+        ("Altitude Subdivision", test_altitude_subdivision_pure_python),
     ]
 
     results = []

@@ -60,6 +60,7 @@ class ValidationSuite:
             ("Numerical Stability", self.test_numerical_stability),
             ("Edge Cases", self.test_edge_cases),
             ("Thoth Triangle", self.test_thoth_triangle),
+            ("Altitude Subdivision", self.test_altitude_subdivision),
         ]
 
         if TORCH_AVAILABLE:
@@ -149,6 +150,64 @@ class ValidationSuite:
 
         print(f"✓ Batch processing validated on {n_triangles} triangles")
         print(f"  Mean scaling factor: {scaling.mean().item():.4f}")
+
+    def test_altitude_subdivision(self):
+        """Test the self-similar altitude split on vertices, trees and general triangles."""
+        import numpy as np
+        from etr.core.altitude_subdivision import (altitude_split, altitude_split_right_triangle, altitude_tree,
+                                                   spine, subdivide_until, longest_sides, triangle_areas)
+
+        def sorted_side_ratios(tri):
+            sides = sorted(np.linalg.norm(tri[(i + 1) % 3] - tri[(i + 2) % 3]) for i in range(3))
+            return np.array(sides[:2]) / sides[2]
+
+        thoth = thoth_triangle()
+        parent = np.array(thoth.unit_circumcircle_vertices())
+        children = altitude_split(parent)
+        small, large = altitude_split_right_triangle(thoth)
+
+        # Both children are right triangles similar to the parent, scaled by b/c and h/c
+        for child in children:
+            assert np.allclose(sorted_side_ratios(child), sorted_side_ratios(parent), atol=1e-12), "children should be similar to the parent"
+            leg_a, leg_b = child[0] - child[1], child[2] - child[1]
+            assert abs(np.dot(leg_a, leg_b)) < 1e-12, "right angle should sit at the altitude foot"
+        child_hyps = sorted(longest_sides(children))
+        assert np.allclose(child_hyps, [2 * thoth.base / thoth.hypotenuse, 2 * thoth.height / thoth.hypotenuse], atol=1e-12)
+        assert np.isclose(small.hypotenuse, thoth.base) and np.isclose(large.hypotenuse, thoth.height), "child hypotenuses are the parent's legs"
+
+        # Exact tiling: areas add up (Pythagoras) and the foot lies inside the hypotenuse
+        assert abs(triangle_areas(children).sum() - triangle_areas(parent[None])[0]) < 1e-14
+        assert np.allclose(children[0][1], children[1][1]), "children share the altitude foot at index 1"
+        foot_t = np.dot(children[0][1] - parent[0], parent[1] - parent[0]) / np.dot(parent[1] - parent[0], parent[1] - parent[0])
+        assert abs(foot_t - thoth.base**2 / thoth.hypotenuse**2) < 1e-12, "foot divides the hypotenuse at b²/c² (geometric-mean theorem)"
+
+        # Tree: 2^k triangles per level, every level tiles the root, all similar to it
+        levels = altitude_tree(parent, 6)
+        assert [len(level) for level in levels] == [1, 2, 4, 8, 16, 32, 64]
+        for level in levels:
+            assert abs(triangle_areas(level).sum() - triangle_areas(parent[None])[0]) < 1e-12
+            assert all(np.allclose(sorted_side_ratios(tri), sorted_side_ratios(parent), atol=1e-10) for tri in level)
+
+        # Spine: the largest triangle at level k is the root scaled by (h/c)^k = L^-k
+        for k, level in enumerate(levels):
+            assert abs(longest_sides(level).max() - 2 * (thoth.height / thoth.hypotenuse) ** k) < 1e-12
+            assert abs(spine(thoth, k).hypotenuse - thoth.hypotenuse * thoth.logarithmic_base ** (-k)) < 1e-12
+        assert np.isclose(spine(thoth, 1).hypotenuse, thoth.height), "spine: hypotenuse(n+1) = height(n)"
+
+        # Size-driven cut: tiles the root with every longest side under the bound
+        cut = subdivide_until(parent, max_longest_side=0.25)
+        assert len(cut) > 64 and (longest_sides(cut) <= 0.25).all()
+        assert abs(triangle_areas(cut).sum() - triangle_areas(parent[None])[0]) < 1e-12
+
+        # A general triangle still tiles exactly, but its children are not similar to it
+        skewed = np.array([[0.0, 0, 0], [4, 0, 0], [1, 3, 0]])
+        children = altitude_split(skewed)
+        assert abs(triangle_areas(children).sum() - triangle_areas(skewed[None])[0]) < 1e-14
+        assert not any(np.allclose(sorted_side_ratios(child), sorted_side_ratios(skewed), atol=1e-6) for child in children)
+
+        print(f"✓ Altitude subdivision: Thoth children scaled by {thoth.base / thoth.hypotenuse:.5f} and "
+              f"{thoth.height / thoth.hypotenuse:.5f}, 6-level tree of {len(levels[-1])} similar triangles tiles the root, "
+              f"cut of {len(cut)} triangles")
 
     def test_thoth_shape_regularizer(self):
         """Test the training-time pull towards the Thoth shape (utils.loss_utils.shape_regularizer)."""
